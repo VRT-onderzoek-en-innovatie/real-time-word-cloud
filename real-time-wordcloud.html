@@ -48,7 +48,6 @@
 
 			this.dictionary[word.toLowerCase()] = old;
 		}
-		this.updateCloud();
 	};
 	WordCloud.prototype.wipe = function () {
 		this.unique_count = 0;
@@ -142,12 +141,12 @@
    });
 */
    // Simulate real-time tweets FIXME
+   var delay = 1;
    $.getJSON('http://beheer.villavanthilt.be/activities.json?callback=?', function(data) {
-		delay = 1;
 		a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				setTimeout("add_words("+$.toJSON(a[i].message)+");", delay*1000);
+				setTimeout("add_words("+$.toJSON(a[i].message)+");wordfreq.updateCloud();", delay*2000);
 				delay++;
 			}
 		}
