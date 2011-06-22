@@ -49,6 +49,16 @@
 			this.dictionary[word.toLowerCase()] = old;
 		}
 	};
+	WordCloud.prototype.tick = function () {
+		var reduce = function (input) { return input * 0.9; };
+		$.each(this.dictionary, function (index, value) {
+			$.each(value.caps, function(index, value) {
+				value = reduce(value);
+			});
+			value.count = reduce(value.count);
+		});
+		this.total = reduce(this.total);
+	};
 	WordCloud.prototype.wipe = function () {
 		this.unique_count = 0;
 		this.total = 0;
@@ -147,7 +157,7 @@
 		a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				setTimeout("add_words("+$.toJSON(a[i].message)+");wordfreq.updateCloud();", delay*2000);
+				setTimeout("add_words("+$.toJSON(a[i].message)+");wordfreq.tick();wordfreq.updateCloud();", delay*2000);
 				delay++;
 			}
 		}
