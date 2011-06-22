@@ -95,12 +95,13 @@
 		}
    });
 */
+   // Simulate real-time tweets FIXME
    $.getJSON('http://beheer.villavanthilt.be/activities.json?callback=?', function(data) {
 		delay = 1;
 		a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				setTimeout("add_words("+$.toJSON(a[i].message)+");", delay*1000);
+				setTimeout("add_words("+$.toJSON(a[i].message)+");update_wordcloud();", delay*1000);
 				delay++;
 			}
 		}
@@ -127,15 +128,11 @@
 			for(var i in h) { words.push(i); }
 		}
 
-		update_wordcloud(words);
+		wordfreq.countOccurence(words);
    }
 
    current_threshold = 0;
    function update_wordcloud(words) {
-		for(var i in words) {
-			wordfreq.countOccurence(words[i]);
-		}
-
 		$("#wordcloud").empty();
 		words = wordfreq.getWords();
 		for(var i in words) {
