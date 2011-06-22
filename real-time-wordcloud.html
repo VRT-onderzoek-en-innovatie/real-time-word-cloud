@@ -28,7 +28,7 @@
 			if( typeof(words) == 'string' ) words = [ words ];
 			for(var i in words) {
 				var word = words[i];
-				if( $.inArray(word, this.stopwords) > -1 ) return;
+				if( $.inArray(word.toLowerCase(), this.stopwords) > -1 ) return;
 
 				var old = this.dictionary[word.toLowerCase()];
 				if( old == undefined ) old = {count: 0, caps: {}};
