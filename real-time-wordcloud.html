@@ -106,6 +106,17 @@
 		}
    });
 
+   wordfreq = new WordCloud();
+   wordfreq.stopwords = wordfreq.stopwords.concat( "de het een".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "en of".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "ik jij je gij ge hij zij wij we jullie".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "dit dat deze da".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "nog wel niet ja nee neen".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "hoe waar wanneer waarom".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "om over op zo van met voor in".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "ben bent is zijn was waren".split(' ') );
+   wordfreq.stopwords = wordfreq.stopwords.concat( "heb hebt hebben".split(' ') );
+
    function add_words(text) {
 		words = text.match(/@?[a-zA-Z][a-zA-Z-]+/g);
 
@@ -119,8 +130,6 @@
 		update_wordcloud(words);
    }
 
-   wordfreq = new WordCloud();
-   wordfreq.stopwords = "de het een en ik jij hij zij wij jullie om over op zo van met".split(' ');
    current_threshold = 0;
    function update_wordcloud(words) {
 		for(var i in words) {
