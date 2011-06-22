@@ -123,12 +123,11 @@
 				if( data[2].dom == undefined ) {
 					// Create a DOM element
 					data[2].dom = that.dom_template.clone()
-					data[2].dom.text(word).css('font-size', (size*100+'%'));
+					data[2].dom.text(word).css('font-size', '0%');
 					that.dom_parent.append(data[2].dom);
-				} else {
-					// DOM exists, animate
-					data[2].dom.animate({'font-size': (size*100+'%')}, 400);
 				}
+				// DOM exists, animate
+				data[2].dom.animate({'font-size': (size*100+'%')}, 400);
 			} else {
 				if( data[2].dom != undefined ) {
 					data[2].dom.animate({'font-size': '0pt'}, 400, function() {
