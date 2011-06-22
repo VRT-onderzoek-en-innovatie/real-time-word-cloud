@@ -24,18 +24,22 @@
 		this.count = 0;
 		this.dictionary = {};
 		this.stopwords = [];
-		this.countOccurence = function (word) {
-			if( $.inArray(word, this.stopwords) > -1 ) return;
+		this.countOccurence = function (words) {
+			if( typeof(words) == 'string' ) words = [ words ];
+			for(var i in words) {
+				var word = words[i];
+				if( $.inArray(word, this.stopwords) > -1 ) return;
 
-			old = this.dictionary[word.toLowerCase()];
-			if( old == undefined ) old = {count: 0, caps: {}};
-			if( old.caps[word] == undefined ) old.caps[word] = 0;
+				var old = this.dictionary[word.toLowerCase()];
+				if( old == undefined ) old = {count: 0, caps: {}};
+				if( old.caps[word] == undefined ) old.caps[word] = 0;
 
-			this.count++;
-			old.count++;
-			old.caps[word]++;
+				this.count++;
+				old.count++;
+				old.caps[word]++;
 
-			this.dictionary[word.toLowerCase()] = old;
+				this.dictionary[word.toLowerCase()] = old;
+			}
 		};
 		this.wipe = function () {
 			this.count = 0;
