@@ -47,10 +47,32 @@
 			old.caps[word]++;
 
 			this.dictionary[word.toLowerCase()] = old;
-
 		}
 		this.updateCloud();
 	};
+	WordCloud.prototype.wipe = function () {
+		this.unique_count = 0;
+		this.total = 0;
+		this.total = 0;
+		this.dictionary = {};
+	};
+	WordCloud.prototype.getOccurences = function (word) {
+		item = this.dictionary[word.toLowerCase()];
+		if( item == undefined ) return [0, ''];
+		highscore = 0;
+		for(var i in item.caps) {
+			if( item.caps[i] > highscore ) {
+				word = i;
+				highscore = item.caps[i];
+			}
+		}
+		return [item.count, word, item];
+	};
+	WordCloud.prototype.getWords = function () {
+		keys = [];
+		for(var i in this.dictionary) { keys.push(i); }
+		return keys;
+	}
 	WordCloud.prototype.updateCloud = function() {
 		var surface = 0;
 		var that = this;
@@ -87,29 +109,6 @@
 			}
 		});
 	};
-	WordCloud.prototype.wipe = function () {
-		this.unique_count = 0;
-		this.total = 0;
-		this.total = 0;
-		this.dictionary = {};
-	};
-	WordCloud.prototype.getOccurences = function (word) {
-		item = this.dictionary[word.toLowerCase()];
-		if( item == undefined ) return [0, ''];
-		highscore = 0;
-		for(var i in item.caps) {
-			if( item.caps[i] > highscore ) {
-				word = i;
-				highscore = item.caps[i];
-			}
-		}
-		return [item.count, word, item];
-	};
-	WordCloud.prototype.getWords = function () {
-		keys = [];
-		for(var i in this.dictionary) { keys.push(i); }
-		return keys;
-	}
   </script>
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
   <script src="javascripts/jquery.json-2.2.min.js"></script>
