@@ -84,8 +84,9 @@
 			/*
 			 * Calculate the expected count of each word (if every word is equally likely)
 			 * Calculate the ratio of the actual count vs the expected count
-			*/
-			var size = count * that.unique_count / that.total;
+			 * Non-linear power-function function to compress this output
+			 */
+			var size = Math.pow(count * that.unique_count / that.total,0.7);
 			surface += word.length*size;
 
 			if( surface < that.surface ) {
