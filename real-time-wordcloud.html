@@ -131,17 +131,18 @@
 		wordfreq.countOccurence(words);
    }
 
-   current_threshold = 0;
    function update_wordcloud(words) {
-		$("#wordcloud").empty();
 		words = wordfreq.getWords();
 		for(var i in words) {
-			data = wordfreq.getOccurences(words[i]);
-			count = data[0]; word = data[1];
-			if( count > current_threshold ) {
-				size = 50000*count/wordfreq.count+'%';
-				item = $('<li/>').text(word).css('font-size', size);
-				$("#wordcloud").append(item);
+			var data = wordfreq.getOccurences(words[i]);
+			var count = data[0]; var word = data[1];
+			var size = 50+500*count/wordfreq.count+'%';
+
+			if( data[2].dom == undefined ) {
+				data[2].dom = $('<li/>').text(word).css('font-size', size);
+				$("#wordcloud").append(data[2].dom);
+			} else {
+				data[2].dom.animate({'font-size': size}, 500);
 			}
 		}
    }
