@@ -20,10 +20,12 @@
   </ul>
   <script src="javascripts/jquery-1.5.1.min.js"></script>
   <script type="text/javascript">
-	function WordCloud() {
+	function WordCloud(dom_parent, dom_template) {
 		this.count = 0;
 		this.dictionary = {};
 		this.stopwords = [];
+		this.dom_parent = dom_parent;
+		this.dom_template = dom_template;
 	}
 	WordCloud.prototype.countOccurence = function (words) {
 		if( typeof(words) == 'string' ) words = [ words ];
@@ -40,6 +42,24 @@
 			old.caps[word]++;
 
 			this.dictionary[word.toLowerCase()] = old;
+
+		}
+		this.updateCloud();
+	};
+	WordCloud.prototype.updateCloud = function() {
+		for(var word in this.dictionary) {
+			var data = wordfreq.getOccurences(word);
+			var count = data[0]; var word = data[1];
+			var size = 50+500*Math.log(1+count/this.count)+'%';
+			console.log(word + ' (' + count + '/' + this.count + ')');
+
+			if( data[2].dom == undefined ) {
+				data[2].dom = this.dom_template.clone()
+				data[2].dom.text(word).css('font-size', size);
+				this.dom_parent.append(data[2].dom);
+			} else {
+				data[2].dom.animate({'font-size': size}, 600);
+			}
 		}
 	};
 	WordCloud.prototype.wipe = function () {
@@ -101,13 +121,13 @@
 		a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				setTimeout("add_words("+$.toJSON(a[i].message)+");update_wordcloud();", delay*1000);
+				setTimeout("add_words("+$.toJSON(a[i].message)+");", delay*1000);
 				delay++;
 			}
 		}
    });
 
-   wordfreq = new WordCloud();
+   wordfreq = new WordCloud( $("#wordcloud"), $("<li/>") );
    wordfreq.stopwords = wordfreq.stopwords.concat( "de het een".split(' ') );
    wordfreq.stopwords = wordfreq.stopwords.concat( "en of".split(' ') );
    wordfreq.stopwords = wordfreq.stopwords.concat( "ik jij je gij ge hij zij wij we jullie".split(' ') );
@@ -129,22 +149,6 @@
 		}
 
 		wordfreq.countOccurence(words);
-   }
-
-   function update_wordcloud(words) {
-		words = wordfreq.getWords();
-		for(var i in words) {
-			var data = wordfreq.getOccurences(words[i]);
-			var count = data[0]; var word = data[1];
-			var size = 50+500*count/wordfreq.count+'%';
-
-			if( data[2].dom == undefined ) {
-				data[2].dom = $('<li/>').text(word).css('font-size', size);
-				$("#wordcloud").append(data[2].dom);
-			} else {
-				data[2].dom.animate({'font-size': size}, 500);
-			}
-		}
    }
   </script>
  </body>
