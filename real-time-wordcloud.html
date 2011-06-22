@@ -27,6 +27,7 @@
 		this.stopwords = [];
 		this.dom_parent = dom_parent;
 		this.dom_template = dom_template;
+		this.surface = 600;
 	}
 	WordCloud.prototype.countOccurence = function (words) {
 		if( typeof(words) == 'string' ) words = [ words ];
@@ -51,23 +52,40 @@
 		this.updateCloud();
 	};
 	WordCloud.prototype.updateCloud = function() {
-		for(var word in this.dictionary) {
+		var surface = 0;
+		var that = this;
+		var sorted_words = this.getWords().sort( function(a, b) {
+				return that.dictionary[b].count - that.dictionary[a].count;
+		});
+		$.each(sorted_words, function(index, word) {
 			var data = wordfreq.getOccurences(word);
 			var count = data[0]; var word = data[1];
 			/*
 			 * Calculate the expected count of each word (if every word is equally likely)
 			 * Calculate the ratio of the actual count vs the expected count
 			*/
-			var size = count*wc.unique_count/wc.total;
+			var size = count * that.unique_count / that.total;
+			surface += word.length*size;
 
-			if( data[2].dom == undefined ) {
-				data[2].dom = this.dom_template.clone()
-				data[2].dom.text(word).css('font-size', (size*100+'%'));
-				this.dom_parent.append(data[2].dom);
+			if( surface < that.surface ) {
+				if( data[2].dom == undefined ) {
+					// Create a DOM element
+					data[2].dom = that.dom_template.clone()
+					data[2].dom.text(word).css('font-size', (size*100+'%'));
+					that.dom_parent.append(data[2].dom);
+				} else {
+					// DOM exists, animate
+					data[2].dom.animate({'font-size': (size*100+'%')}, 400);
+				}
 			} else {
-				data[2].dom.animate({'font-size': (size*100+'%')}, 400);
+				if( data[2].dom != undefined ) {
+					data[2].dom.animate({'font-size': '0%'}, 400, function() {
+						data[2].dom.remove();
+						data[2].dom = undefined;
+					});
+				}
 			}
-		}
+		});
 	};
 	WordCloud.prototype.wipe = function () {
 		this.unique_count = 0;
