@@ -85,7 +85,7 @@
 	};
 	WordCloud.prototype.getOccurences = function (word) {
 		item = this.dictionary[word.toLowerCase()];
-		if( item == undefined ) return [0, ''];
+		if( item == undefined ) return [0, '', null]
 		highscore = 0;
 		for(var i in item.caps) {
 			if( item.caps[i] > highscore ) {
