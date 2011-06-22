@@ -20,49 +20,49 @@
   </ul>
   <script src="javascripts/jquery-1.5.1.min.js"></script>
   <script type="text/javascript">
-   function WordCloud() {
+	function WordCloud() {
 		this.count = 0;
 		this.dictionary = {};
 		this.stopwords = [];
-		this.countOccurence = function (words) {
-			if( typeof(words) == 'string' ) words = [ words ];
-			for(var i in words) {
-				var word = words[i];
-				if( $.inArray(word.toLowerCase(), this.stopwords) > -1 ) return;
+	}
+	WordCloud.prototype.countOccurence = function (words) {
+		if( typeof(words) == 'string' ) words = [ words ];
+		for(var i in words) {
+			var word = words[i];
+			if( $.inArray(word.toLowerCase(), this.stopwords) > -1 ) return;
 
-				var old = this.dictionary[word.toLowerCase()];
-				if( old == undefined ) old = {count: 0, caps: {}};
-				if( old.caps[word] == undefined ) old.caps[word] = 0;
+			var old = this.dictionary[word.toLowerCase()];
+			if( old == undefined ) old = {count: 0, caps: {}};
+			if( old.caps[word] == undefined ) old.caps[word] = 0;
 
-				this.count++;
-				old.count++;
-				old.caps[word]++;
+			this.count++;
+			old.count++;
+			old.caps[word]++;
 
-				this.dictionary[word.toLowerCase()] = old;
-			}
-		};
-		this.wipe = function () {
-			this.count = 0;
-			this.dictionary = {};
-		};
-		this.getOccurences = function (word) {
-			item = this.dictionary[word.toLowerCase()];
-			if( item == undefined ) return [0, ''];
-			highscore = 0;
-			for(var i in item.caps) {
-				if( item.caps[i] > highscore ) {
-					word = i;
-					highscore = item.caps[i];
-				}
-			}
-			return [item.count, word];
-		};
-		this.getWords = function () {
-			keys = [];
-			for(var i in this.dictionary) { keys.push(i); }
-			return keys;
+			this.dictionary[word.toLowerCase()] = old;
 		}
-   }
+	};
+	WordCloud.prototype.wipe = function () {
+		this.count = 0;
+		this.dictionary = {};
+	};
+	WordCloud.prototype.getOccurences = function (word) {
+		item = this.dictionary[word.toLowerCase()];
+		if( item == undefined ) return [0, ''];
+		highscore = 0;
+		for(var i in item.caps) {
+			if( item.caps[i] > highscore ) {
+				word = i;
+				highscore = item.caps[i];
+			}
+		}
+		return [item.count, word, item];
+	};
+	WordCloud.prototype.getWords = function () {
+		keys = [];
+		for(var i in this.dictionary) { keys.push(i); }
+		return keys;
+	}
   </script>
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
   <script src="javascripts/jquery.json-2.2.min.js"></script>
