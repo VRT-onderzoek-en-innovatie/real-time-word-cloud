@@ -72,7 +72,9 @@
 		if( type = 'seconds' ) {
 			var ticktime = halftime*1000 / (Math.log(.5)/Math.log(delta));
 			this.ewma = delta;
-			this.ewma_timer = setInterval(this.tick /* Without ()!! */, ticktime);
+
+			var that = this; var closure = function () { var that2 = that; that2.tick(); };
+			this.ewma_timer = setInterval(closure, ticktime);
 		} else if( type = 'messages' ) {
 			this.ewma = Math.pow(.5, 1/halftime);
 		}
