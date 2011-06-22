@@ -21,7 +21,8 @@
   <script src="javascripts/jquery-1.5.1.min.js"></script>
   <script type="text/javascript">
 	function WordCloud(dom_parent, dom_template) {
-		this.count = 0;
+		this.unique_count = 0;
+		this.total = 0;
 		this.dictionary = {};
 		this.stopwords = [];
 		this.dom_parent = dom_parent;
@@ -34,10 +35,13 @@
 			if( $.inArray(word.toLowerCase(), this.stopwords) > -1 ) continue;
 
 			var old = this.dictionary[word.toLowerCase()];
-			if( old == undefined ) old = {count: 0, caps: {}};
+			if( old == undefined ) {
+				this.unique_count++;
+				old = {count: 0, caps: {}};
+			}
 			if( old.caps[word] == undefined ) old.caps[word] = 0;
 
-			this.count++;
+			this.total++;
 			old.count++;
 			old.caps[word]++;
 
@@ -50,20 +54,25 @@
 		for(var word in this.dictionary) {
 			var data = wordfreq.getOccurences(word);
 			var count = data[0]; var word = data[1];
-			var size = 50+500*Math.log(1+count/this.count)+'%';
-			console.log(word + ' (' + count + '/' + this.count + ')');
+			/*
+			 * Calculate the expected count of each word (if every word is equally likely)
+			 * Calculate the ratio of the actual count vs the expected count
+			*/
+			var size = count*wc.unique_count/wc.total;
 
 			if( data[2].dom == undefined ) {
 				data[2].dom = this.dom_template.clone()
-				data[2].dom.text(word).css('font-size', size);
+				data[2].dom.text(word).css('font-size', (size*100+'%'));
 				this.dom_parent.append(data[2].dom);
 			} else {
-				data[2].dom.animate({'font-size': size}, 600);
+				data[2].dom.animate({'font-size': (size*100+'%')}, 400);
 			}
 		}
 	};
 	WordCloud.prototype.wipe = function () {
-		this.count = 0;
+		this.unique_count = 0;
+		this.total = 0;
+		this.total = 0;
 		this.dictionary = {};
 	};
 	WordCloud.prototype.getOccurences = function (word) {
