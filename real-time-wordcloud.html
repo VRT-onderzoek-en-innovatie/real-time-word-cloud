@@ -175,7 +175,7 @@
    wordfreq.stopwords = wordfreq.stopwords.concat( "heb hebt hebben".split(' ') );
 
    function add_words(text) {
-		words = text.match(/@?[a-zA-Z][a-zA-Z-]+/g);
+		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|@?[a-zA-Z][a-zA-Z-]+/g);
 
 		{ // only count unique words, duplicate words in the same comment are ignored
 			h = {};
