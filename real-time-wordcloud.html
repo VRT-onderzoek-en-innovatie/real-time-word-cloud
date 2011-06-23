@@ -74,6 +74,20 @@
 			this.ewma = Math.pow(.5, 1/halftime);
 		}
 	};
+	WordCloud.prototype.addStopWords = function (words) {
+		if( typeof(words) == 'string' ) words = [ words ];
+		// Add them to the stopword list
+		this.stopwords = this.stopwords.concat(words);
+		// And remove the new stopwords from the dictionary
+		var that = this;
+		$.each(words, function (index, value) {
+			if( that.dictionary[value] != undefined ) {
+				that.total -= that.dictionary[value].count;
+				that.dictionary[value] = undefined;
+				that.unique_count--;
+			}
+		});
+	};
 	WordCloud.prototype.wipe = function () {
 		this.unique_count = 0;
 		this.total = 0;
@@ -168,15 +182,12 @@
 
    wordfreq = new WordCloud( $("#wordcloud"), $("<div class='wordclouditem'/>"), 500 );
    wordfreq.setEwma(60, 'seconds');
-   wordfreq.stopwords = wordfreq.stopwords.concat( "de het een".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "en of".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "ik jij je gij ge hij zij wij we jullie".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "dit dat deze da".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "nog wel niet ja nee neen".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "hoe waar wanneer waarom".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "om over op zo van met voor in".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "ben bent is zijn was waren".split(' ') );
-   wordfreq.stopwords = wordfreq.stopwords.concat( "heb hebt hebben".split(' ') );
+   $.ajax({
+		url: "stopwords.txt",
+		success: function(text) {
+			wordfreq.addStopWords( text.split(/\s+/) );
+		}
+	});
 
    function add_words(text) {
 		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|@?[a-zA-Z][a-zA-Z-]+/g);
