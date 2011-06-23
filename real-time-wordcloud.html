@@ -56,7 +56,17 @@
 			value.count = reduce(value.count);
 		});
 		this.total = reduce(this.total);
+		this.cleanup();
 	};
+	WordCloud.prototype.cleanup = function () {
+		var that = this;
+		$.each(this.dictionary, function (index, value) {
+			if( value.count < 0.1 ) {
+				that.total -= value.count;
+				delete that.dictionary[value];
+			}
+		});
+	}
 	WordCloud.prototype.setEwma = function (halftime, type) {
 		var delta = 0.95
 		if( this.ewma_timer != null ) {
@@ -82,7 +92,7 @@
 		$.each(words, function (index, value) {
 			if( that.dictionary[value] != undefined ) {
 				that.total -= that.dictionary[value].count;
-				that.dictionary[value] = undefined;
+				delete that.dictionary[value];
 			}
 		});
 	};
@@ -178,7 +188,7 @@
 	});
 
    function add_words(text) {
-		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|@?[a-zA-Z][a-zA-Z'-]+/g);
+		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
 
 		{ // only count unique words, duplicate words in the same comment are ignored
 			h = {};
