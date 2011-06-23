@@ -62,6 +62,9 @@
 		$.each(this.dictionary, function (index, value) {
 			if( value.count < 0.1 ) {
 				that.total -= value.count;
+				if( that.dictionary[index].dom != undefined ) {
+					that.dictionary[index].dom.remove();
+				}
 				delete that.dictionary[index];
 			}
 		});
