@@ -62,7 +62,7 @@
 		$.each(this.dictionary, function (index, value) {
 			if( value.count < 0.1 ) {
 				that.total -= value.count;
-				delete that.dictionary[value];
+				delete that.dictionary[index];
 			}
 		});
 	}
