@@ -64,13 +64,13 @@
 			clearTimeout(this.ewma_timer);
 			this.ewma_timer = null;
 		}
-		if( type = 'seconds' ) {
+		if( type == 'seconds' ) {
 			var ticktime = halftime*1000 / (Math.log(.5)/Math.log(delta));
 			this.ewma = delta;
 
 			var that = this; var closure = function () { var that2 = that; that2.tick(); };
 			this.ewma_timer = setInterval(closure, ticktime);
-		} else if( type = 'messages' ) {
+		} else if( type == 'messages' ) {
 			this.ewma = Math.pow(.5, 1/halftime);
 		}
 	};
@@ -181,7 +181,7 @@
    });
 
    wordfreq = new WordCloud( $("#wordcloud"), $("<div class='wordclouditem'/>"), 500 );
-   wordfreq.setEwma(60, 'seconds');
+   wordfreq.setEwma(20, 'messages');
    $.ajax({
 		url: "stopwords.txt",
 		success: function(text) {
