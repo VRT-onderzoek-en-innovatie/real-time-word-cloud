@@ -69,7 +69,7 @@
 			var ticktime = halftime*1000 / (Math.log(.5)/Math.log(delta));
 			this.ewma = delta;
 
-			var that = this; var closure = function () { var that2 = that; that2.tick(); };
+			var that = this; var closure = function () { var that2 = that; that2.tick(); that2.updateCloud(); };
 			this.ewma_timer = setInterval(closure, ticktime);
 		} else if( type == 'messages' ) {
 			this.ewma = Math.pow(.5, 1/halftime);
@@ -126,7 +126,7 @@
 			 * Calculate the ratio of the actual count vs the expected count
 			 * Non-linear power-function function to compress this output
 			 */
-			var size = Math.pow(count * that.unique_count / that.total,0.7);
+			var size = Math.pow(count,0.7);
 			surface += word.length*size;
 
 			if( surface < that.surface ) {
