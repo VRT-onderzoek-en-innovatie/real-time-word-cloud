@@ -140,10 +140,11 @@
 				data[2].dom.animate({'font-size': (size*100+'%')}, 400);
 			} else {
 				if( data[2].dom != undefined ) {
+					var dom_to_remove = data[2].dom;
 					data[2].dom.animate({'font-size': '0pt'}, 400, function() {
-						data[2].dom.remove();
-						data[2].dom = undefined;
+						dom_to_remove.remove();
 					});
+					data[2].dom = undefined;
 				}
 			}
 		});
