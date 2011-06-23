@@ -152,6 +152,7 @@
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
   <script src="jquery.json.js"></script>
   <script type="text/javascript">
+   var ffwd = 10;
    var now = 0;
    var events;
    function time_passes() {
@@ -167,11 +168,11 @@
    }
    $.getJSON('fake_input.json', function(data) {
 		events = data;
-		setInterval("time_passes();", 250);
+		setInterval("time_passes();", 1000/ffwd);
    });
 
    wordfreq = new WordCloud( $("#wordcloud"), $("<div class='wordclouditem'/>"), 500 );
-   wordfreq.setEwma(20, 'messages');
+   wordfreq.setEwma(300/ffwd, 'seconds');
    $.ajax({
 		url: "stopwords.txt",
 		success: function(text) {
