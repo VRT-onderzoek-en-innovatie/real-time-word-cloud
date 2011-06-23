@@ -17,7 +17,6 @@
   <script src="jquery.js"></script>
   <script type="text/javascript">
 	function WordCloud(dom_parent, dom_template, surface) {
-		this.unique_count = 0;
 		this.total = 0;
 		this.dictionary = {};
 		this.stopwords = [];
@@ -35,7 +34,6 @@
 
 			var old = this.dictionary[word.toLowerCase()];
 			if( old == undefined ) {
-				this.unique_count++;
 				old = {count: 0, caps: {}};
 			}
 			if( old.caps[word] == undefined ) old.caps[word] = 0;
@@ -85,12 +83,10 @@
 			if( that.dictionary[value] != undefined ) {
 				that.total -= that.dictionary[value].count;
 				that.dictionary[value] = undefined;
-				that.unique_count--;
 			}
 		});
 	};
 	WordCloud.prototype.wipe = function () {
-		this.unique_count = 0;
 		this.total = 0;
 		this.total = 0;
 		this.dictionary = {};
