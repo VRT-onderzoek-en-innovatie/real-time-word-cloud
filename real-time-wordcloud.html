@@ -12,6 +12,7 @@
   </style>
  </head>
  <body>
+  <p>Current time: <span id="now"></span>, next event: <span id="next"></span></p>
   <div id="wordcloud"></div>
   <script src="jquery.js"></script>
   <script type="text/javascript">
@@ -151,33 +152,22 @@
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
   <script src="jquery.json.js"></script>
   <script type="text/javascript">
-   supported_actions = ['twitter','facebook','comment'];
-
-   $.getJSON('http://beheer.villavanthilt.be/activities.json?callback=?', function(data) {
-		a = $.parseJSON( data.activities );
-		for(var i in a) {
-			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				add_words(a[i].message);
-			}
-		}
-		wordfreq.updateCloud();
-   });
-
-   var socket = new io.Socket('46.137.24.146');
-   socket.connect();
-   socket.on('connect', function(){
-		socket.send( $.toJSON({ action: 'join', program: 'all' }) );
-   });
-   socket.on('disconnect', function(){
-		alert('disconected');
-		setTimeout("socket.connect();", 1000);
-   });
-   socket.on('message', function(e){ 
-		a = $.parseJSON( e.data );
-		if( $.inArray( a.activity.action, supported_actions) > -1 ) {
-			add_words( a.activity.message );
+   var now = 0;
+   var events;
+   function time_passes() {
+		now++;
+		// Assume events are sorted
+		while( events[0].offset < now ) {
+			e = events.shift();
+			add_words(e.text);
 			wordfreq.updateCloud();
 		}
+		$("#now").text(now);
+		$("#next").text(events[0].offset);
+   }
+   $.getJSON('fake_input.json', function(data) {
+		events = data;
+		setInterval("time_passes();", 250);
    });
 
    wordfreq = new WordCloud( $("#wordcloud"), $("<div class='wordclouditem'/>"), 500 );
