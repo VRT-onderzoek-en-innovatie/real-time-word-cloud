@@ -191,7 +191,7 @@
    });
 
    wordfreq = new WordCloud( $("#wordcloud"), $("<div class='wordclouditem'/>"), 500 );
-   wordfreq.setEwma(20, 'messages');
+   wordfreq.setEwma(300, 'seconds');
    $.ajax({
 		url: "stopwords.txt",
 		success: function(text) {
