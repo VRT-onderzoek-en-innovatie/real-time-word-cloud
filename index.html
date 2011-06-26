@@ -164,7 +164,7 @@
    supported_actions = ['twitter','facebook','comment'];
 
    $.getJSON('http://beheer.villavanthilt.be/activities.json?callback=?', function(data) {
-		a = $.parseJSON( data.activities );
+		var a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
 				add_words(a[i].message);
@@ -191,7 +191,7 @@
    });
 
    wordfreq = new WordCloud( $("#wordcloud"), $("<div class='wordclouditem'/>"), 500 );
-   wordfreq.setEwma(300, 'seconds');
+   wordfreq.setEwma(120, 'seconds');
    $.ajax({
 		url: "stopwords.txt",
 		success: function(text) {
