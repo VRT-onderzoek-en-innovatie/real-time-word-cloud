@@ -4,22 +4,25 @@
   <style type="text/css">
 	div#wordcloud {
 		position: relative;
+		border: solid;
 	}
 	div#wordcloud div.wordclouditem {
+		position: absolute;
 		display: inline-block;
+		border: solid;
 		padding: 0.1em;
 	}
   </style>
  </head>
  <body>
   <p>Current time: <span id="now"></span>, next event: <span id="next"></span></p>
-  <div id="wordcloud"></div>
+  <div id="wordcloud" style="width: 640px; height: 480px;"></div>
   <script src="jquery.js"></script>
   <script src="WordFreq.js"></script>
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
   <script src="jquery.json.js"></script>
   <script type="text/javascript">
-   wordfreq = new WordFreq();
+   var wordfreq = new WordFreq();
    wordfreq.setEwma(120, 'seconds');
    $.ajax({
 		url: "stopwords.txt",
@@ -31,7 +34,57 @@
 		}
 	});
 
-	wordfreq.registerCallback(function () {1+1;});
+	WordCloud = function(wordfreq) {
+		this.anchor = $("#wordcloud");
+		this.template = $("<div class='wordclouditem'/>");
+		this.wordfreq = wordfreq;
+		var that = this;
+		this.wordfreq.registerCallback(function () { /*that.update();*/ });
+	};
+	WordCloud.prototype.update = function() {
+		var forcefield = new Array();
+
+		{ // Initialize forcefield toward center of anchor
+			var cx = Math.floor(this.anchor.width()/2);
+			var cy = Math.floor(this.anchor.height()/2);
+			for(var x=this.anchor.width()-1; x >= 0; x--) { // Iterate backwards to optimize performance
+				forcefield[x] = new Array();
+				for(var y=this.anchor.height()-1; y >= 0; y--) {
+					var dx = cx-x, dy = cy-y;
+					forcefield[x][y] = [ ( Math.abs(dx/cx)>=Math.abs(dy/cy) ? dx/Math.abs(dx) : 0 ),
+					                     ( Math.abs(dy/cy)>=Math.abs(dx/cx) ? dy/Math.abs(dy) : 0 ) ];
+				}
+			}
+		}
+
+		for( var i = items.length-1; i >= 0; i-- ) { // Interate backwards to optimize performance
+			var item = $( items[i] );
+
+		}
+
+		var items = this.anchor.children();
+		for(var i=items.length-1; i >= 0; i--) { // Iterate backwards to optimize performance
+			var item = { jq: $( items[i] ) };
+			item.p = item.jq.position();
+			item.w = item.jq.width();
+			item.h = item.jq.height();
+			item.x = item.p.left + item.w/2;
+			item.y = item.p.top + item.h/2;
+
+			var mvx = forcefield[Math.floor(item.x)][Math.floor(item.y)][0];
+			var mvy = forcefield[Math.floor(item.x)][Math.floor(item.y)][1];
+
+			$( items[i] ).css('left', $( items[i] ).position().left + Math.max(-10,Math.min(10,mvx)) )
+				.css('top', $( items[i] ).position().top + Math.max(-10,Math.min(10,mvy)) );
+		}
+	};
+
+	var wordcloud = new WordCloud(wordfreq);
+
+	for(var i=0; i<5; i++) {
+		$("#wordcloud").append( $("<div class='wordclouditem'>Item number "+i+"</div>").css('left', Math.random()*640+'px').css('top', Math.random()*480+'px') );
+	}
+
   </script>
   <script type="text/javascript">
    var ffwd = 10;
@@ -52,14 +105,7 @@
 		setInterval("time_passes();", 1000/ffwd);
    });
 
-   wordfreq = new WordFreq();
    wordfreq.setEwma(300/ffwd, 'seconds');
-   $.ajax({
-		url: "stopwords.txt",
-		success: function(text) {
-			wordfreq.addStopWords( text.split(/\s+/) );
-		}
-	});
 
    function add_words(text) {
 		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
