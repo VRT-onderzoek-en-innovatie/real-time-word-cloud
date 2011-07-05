@@ -9,7 +9,6 @@
 	div#wordcloud div.wordclouditem {
 		position: absolute;
 		display: inline-block;
-		border: solid;
 		padding: 0.1em;
 	}
   </style>
@@ -34,56 +33,99 @@
 		}
 	});
 
+	function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
+		/* Do the rectangles A and B intersect?
+		 * Each are specified by their left-top corner {a,b}{x,y}
+		 * and their width and hight {a,b}{w,h} (exclusive)
+		 * This function returns either false if the rectangles
+		 * do not overlap, or a vector [x,y] to move A away from B
+		 */
+		
+		// Make sure {a,b}{w,h} are positive
+		if( aw < 0 ) { ax = ax + aw; aw = -aw; }
+		if( ah < 0 ) { ay = ay + ah; ah = -ah; }
+		if( bw < 0 ) { bx = bx + bw; bw = -bw; }
+		if( bh < 0 ) { by = by + bh; bh = -bh; }
+
+		if( ax+aw <= bx /* A left of B */ ) return false;
+		if( bx+bw <= ax /* A right of B */ ) return false;
+		if( ay+ah <= by /* A above B */ ) return false;
+		if( by+bh <= ay /* A below B */ ) return false;
+
+		// OK, they overlap; Move away in this direction
+		var mv = [ (ax+aw/2) - (bx+bw/2) , (ay+ah/2) - (by+bh/2) ];
+		{
+			var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
+			mv[0] /= length; mv[1] /= length;
+		}
+
+		{ // Now find the intersection area to scale that vector
+			var ix = Math.max(ax,bx);
+			var iy = Math.max(ay,by);
+			var ix2 = Math.min(ax+aw, bx+bw);
+			var iy2 = Math.min(ay+ah, by+bh);
+			var iw = ix2-ix;
+			var ih = iy2-iy;
+			var area = iw*ih;
+			area /= aw*ah;
+			mv[0] *= area; mv[1] *= area;
+		}
+
+		return mv;
+	}
+
+	Math.round_away_from_zero = function (x) { return (x >= 0 ? Math.ceil(x) : Math.floor(x) ); }
+
 	WordCloud = function(wordfreq) {
 		this.anchor = $("#wordcloud");
 		this.template = $("<div class='wordclouditem'/>");
 		this.wordfreq = wordfreq;
+		this.dom = {}; // store for pointer to dom elements
 		var that = this;
-		this.wordfreq.registerCallback(function () { /*that.update();*/ });
+		this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
+		this.wordfreq.cb.updatedWord.push( function(word, count) { that.updateWord(word,count); } );
 	};
-	WordCloud.prototype.update = function() {
-		var forcefield = new Array();
-
-		{ // Initialize forcefield toward center of anchor
-			var cx = Math.floor(this.anchor.width()/2);
-			var cy = Math.floor(this.anchor.height()/2);
-			for(var x=this.anchor.width()-1; x >= 0; x--) { // Iterate backwards to optimize performance
-				forcefield[x] = new Array();
-				for(var y=this.anchor.height()-1; y >= 0; y--) {
-					var dx = cx-x, dy = cy-y;
-					forcefield[x][y] = [ ( Math.abs(dx/cx)>=Math.abs(dy/cy) ? dx/Math.abs(dx) : 0 ),
-					                     ( Math.abs(dy/cy)>=Math.abs(dx/cx) ? dy/Math.abs(dy) : 0 ) ];
-				}
-			}
-		}
-
-		for( var i = items.length-1; i >= 0; i-- ) { // Interate backwards to optimize performance
-			var item = $( items[i] );
-
-		}
-
+	WordCloud.prototype.redraw = function() {
 		var items = this.anchor.children();
-		for(var i=items.length-1; i >= 0; i--) { // Iterate backwards to optimize performance
-			var item = { jq: $( items[i] ) };
-			item.p = item.jq.position();
-			item.w = item.jq.width();
-			item.h = item.jq.height();
-			item.x = item.p.left + item.w/2;
-			item.y = item.p.top + item.h/2;
-
-			var mvx = forcefield[Math.floor(item.x)][Math.floor(item.y)][0];
-			var mvy = forcefield[Math.floor(item.x)][Math.floor(item.y)][1];
-
-			$( items[i] ).css('left', $( items[i] ).position().left + Math.max(-10,Math.min(10,mvx)) )
-				.css('top', $( items[i] ).position().top + Math.max(-10,Math.min(10,mvy)) );
+		for( var i=items.length-1; i>=0; i-- ) {
+			var item = $( items[i] );
+			var mvx = 0, mvy = 0;
+			{ // Go to center
+				var mv = [ this.anchor.width()/2 - (item.position().left+item.width()/2),
+				           this.anchor.height()/2 - (item.position().top+item.height()/2) ];
+				var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
+				mv[0] /= length; mv[1] /= length;
+				mvx += mv[0]; mvy += mv[1];
+			}
+			// repulse from others
+			for( var j=items.length-1; j>=0; j-- ) {
+				if( i == j ) continue;
+				/* Check if the rectangles overlap */
+				var oitem = $( items[j] );
+				var mv = rect_intersect(
+				    item.position().left, item.position().top, item.width(), item.height(),
+				    oitem.position().left, oitem.position().top, oitem.width(), oitem.height()
+					);
+				if( mv != false ) { mvx += 50*mv[0]; mvy += 50*mv[1]; }
+			}
+			item.css('left', item.position().left + Math.round_away_from_zero(mvx) + 'px')
+			    .css('top', item.position().top + Math.round_away_from_zero(mvy) + 'px');
 		}
+	};
+	WordCloud.prototype.newWord = function (newWord) {
+		var item = this.template.clone().text(newWord);
+		// Instantiate randomly
+		item.css('left', Math.random()*(this.anchor.width()-100) + 'px')
+		    .css('top', Math.random()*(this.anchor.height()-50) + 'px')
+		this.anchor.append(item);
+		this.dom[ newWord ] = item;
+	};
+	WordCloud.prototype.updateWord = function (word, count) {
+		this.dom[ word ].css('font-size', count*100+'%');
 	};
 
 	var wordcloud = new WordCloud(wordfreq);
-
-	for(var i=0; i<5; i++) {
-		$("#wordcloud").append( $("<div class='wordclouditem'>Item number "+i+"</div>").css('left', Math.random()*640+'px').css('top', Math.random()*480+'px') );
-	}
+	u = setInterval( function() { wordcloud.redraw(); }, 250 );
 
   </script>
   <script type="text/javascript">
@@ -102,7 +144,7 @@
    }
    $.getJSON('fake_input.json', function(data) {
 		events = data;
-		setInterval("time_passes();", 1000/ffwd);
+		wct = setInterval("time_passes();", 1000/ffwd);
    });
 
    wordfreq.setEwma(300/ffwd, 'seconds');

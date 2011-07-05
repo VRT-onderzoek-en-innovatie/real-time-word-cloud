@@ -5,11 +5,23 @@ function WordFreq() {
 	this.ewma_timer = null;
 	this.remove_threshold = 0;
 
-	this.callOnUpdate = [];
+	this.cb = {};
+	this.cb.newWord = []; // callback( newWord )
+	this.cb.updatedWord = []; // callback( updatedWord, newCount )
+	this.cb.removedWord = []; // callback( removedWord )
 }
 
-WordFreq.prototype.registerCallback = function (func) {
-	this.callOnUpdate.push(func);
+var dispatch_callback = function (/* cb array, arguments, … */) {
+	// Prepare the argument array
+	var args = [];
+	for( var i=1; i<arguments.length; i++ ) {
+		args.push(arguments[i]);
+	}
+
+	// Call all callback functions with the arguments
+	for( var i in arguments[0] ) {
+		arguments[0][i].apply(window, args);
+	}
 };
 
 WordFreq.prototype.addWords = function (words) {
@@ -19,8 +31,9 @@ WordFreq.prototype.addWords = function (words) {
 		if( $.inArray(word.toLowerCase(), this.stopwords) > -1 ) continue;
 
 		var old = this.dictionary[word.toLowerCase()];
-		if( old == undefined ) {
+		if( old == undefined ) { // New word, init empty
 			old = {count: 0, caps: {}};
+			dispatch_callback( this.cb.newWord, word.toLowerCase() );
 		}
 		if( old.caps[word] == undefined ) old.caps[word] = 0;
 
@@ -28,9 +41,7 @@ WordFreq.prototype.addWords = function (words) {
 		old.caps[word]++;
 
 		this.dictionary[word.toLowerCase()] = old;
-	}
-	for(var f in this.callOnUpdate) {
-		this.callOnUpdate[f]();
+		dispatch_callback( this.cb.updatedWord, word.toLowerCase(), old.count );
 	}
 };
 
@@ -42,11 +53,9 @@ WordFreq.prototype.tick = function () {
 			value = reduce(value);
 		});
 		value.count = reduce(value.count);
+		dispatch_callback( that.cb.updatedWord, index, value.count );
 	});
 	this.cleanup();
-	for(var f in this.callOnUpdate) {
-		this.callOnUpdate[f]();
-	}
 };
 
 WordFreq.prototype.cleanup = function () {
@@ -54,6 +63,7 @@ WordFreq.prototype.cleanup = function () {
 	$.each(this.dictionary, function (index, value) {
 		if( value.count < that.remove_threshold ) {
 			delete that.dictionary[index];
+			dispatch_callback( this.cb.removedWord, index );
 		}
 	});
 }
@@ -81,23 +91,24 @@ WordFreq.prototype.addStopWords = function (words) {
 	$.each(words, function (index, value) {
 		if( that.dictionary[value] != undefined ) {
 			delete that.dictionary[value];
+			dispatch_callback( this.cb.removedWord, index );
 		}
 	});
-	for(var f in this.callOnUpdate) {
-		this.callOnUpdate[f]();
-	}
 };
 
 WordFreq.prototype.wipe = function () {
-	this.dictionary = {};
-	for(var f in this.callOnUpdate) {
-		this.callOnUpdate[f]();
+	if( this.cb.removedWord.length > 0 ) {
+		$.each(this.dictionary, function(index, value) {
+			dispatch_callback( this.cb.removedWord, index );
+		});
 	}
+	this.dictionary = {};
 };
 
 WordFreq.prototype.getWords = function () {
 	keys = [];
 	for(var i in this.dictionary) { keys.push(i); }
+	keys.sort(function(a,b){ return this.dictionary[a].count - this.dictionary[b].count; });
 	return keys;
 }
 
