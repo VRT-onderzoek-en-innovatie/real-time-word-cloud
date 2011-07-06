@@ -167,7 +167,7 @@ WordCloud.prototype.updateWord = function (word, count) {
 };
 WordCloud.prototype.removedWord = function (word) {
 	if( this.words[ word ] != undefined ) {
-		this.weight -= wordObj.width() * wordObj.height();
+		this.weight -= wordObj.weight();;
 		this.words[ word ].destroy(); // manually call destructor FIXME (if possible in JS)
 		delete this.words[ word ];
 	}
