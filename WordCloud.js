@@ -125,14 +125,11 @@ WordCloudItem.prototype.redraw = function () {
 			this.prevpos = { x: this.x(), y: this.y() };
 			this.jqe.detach();
 			delete this.cache.attached;
-			console.log("Removing \""+this.jqe.text()+"\" ("+this.size+" < "+this.hideThreshold+")\n");
 		}
 	} else { // Make sure it's in the DOM
 		if( ! this.attached() ) {
 			if(this.prevpos == undefined) {
 				this.prevpos = {x: Math.random()*(this.anchor.width()-100), y: Math.random()*(this.anchor.height()-50) };
-			} else {
-				console.log("Readding \""+this.jqe.text()+"\" ("+this.size+" >= "+this.hideThreshold+")\n");
 			}
 			this.move( this.prevpos.x, this.prevpos.y );
 			this.anchor.jqe.append(this.jqe);
@@ -212,7 +209,6 @@ WordCloud.prototype.redraw = function() {
 	var filled = this.weight/(this.anchor.width()*this.anchor.height());
 	if( filled > 0.4 ) {
 		this.hideThreshold *= 1.05;
-		console.log("Filled for "+filled*100+"%, Increasing backpressure to "+this.hideThreshold+"\n");
 		for( var word in this.words ) {
 			var wordObj = this.words[ word ];
 			wordObj.hideThreshold = this.hideThreshold;
@@ -222,7 +218,6 @@ WordCloud.prototype.redraw = function() {
 		}
 	} else if( filled < 0.15 && this.hideThreshold > 0.1 ) {
 		this.hideThreshold /= 1.05;
-		console.log("Filled for "+filled*100+"%, Decreasing hide threshold to "+this.hideThreshold+"\n");
 		for( var word in this.words ) {
 			var wordObj = this.words[ word ];
 			wordObj.hideThreshold = this.hideThreshold;
