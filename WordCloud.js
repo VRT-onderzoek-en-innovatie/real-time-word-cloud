@@ -185,7 +185,7 @@ WordCloud.prototype.redraw = function() {
 			                      - (wordObj.y()+wordObj.height()/2) ];
 			var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
 			mv[0] /= length; mv[1] /= length;
-			mvx += .5*mv[0]; mvy += .3*mv[1]; // Asymetrical, to compensate for ellipsness
+			mvx += .5*mv[0]; mvy += .2*mv[1]; // Asymetrical, to compensate for ellipsness
 		}
 		// repulse from others
 		for( var otherWord in this.words ) {
