@@ -61,19 +61,27 @@ WordCloudAnchor.prototype.flushCache = function() {
 	this.cache = {};
 };
 
-WordCloudItem = function(jqelement) {
+WordCloudItem = function(jqelement, anchor) {
 	this.jqe = jqelement;
+	this.anchor = anchor;
 	this.cache = {};
+};
+WordCloudItem.prototype.destroy = function () {
+	this.jqe.remove();
 };
 WordCloudItem.prototype.x = function() {
 	if( this.cache.x == undefined ) {
-		this.cache.x = this.jqe.position().left;
+		var pos = this.jqe.position();
+		this.cache.x = pos.left;
+		this.cache.y = pos.top; // If we called position() anyway, update y as well
 	}
 	return this.cache.x;
 };
 WordCloudItem.prototype.y = function() {
 	if( this.cache.y == undefined ) {
-		this.cache.y = this.jqe.position().top;
+		var pos = this.jqe.position();
+		this.cache.y = pos.top;
+		this.cache.x = pos.left; // If we called position() anyway, update x as well
 	}
 	return this.cache.y;
 };
@@ -89,6 +97,12 @@ WordCloudItem.prototype.height = function() {
 	}
 	return this.cache.height;
 };
+WordCloudItem.prototype.attached = function() {
+	if( this.cache.attached == undefined ) {
+		this.cache.attached = ( this.jqe.parent().length != 0 );
+	}
+	return this.cache.attached;
+}
 WordCloudItem.prototype.flushCache = function() {
 	this.cache = {};
 };
@@ -99,13 +113,27 @@ WordCloudItem.prototype.move = function (newX, newY) {
 	delete this.cache.y;
 };
 WordCloudItem.prototype.moveRel = function (deltaX, deltaY) {
-	this.jqe.css('left', this.x() + deltaX + 'px');
-	this.jqe.css('top' , this.y() + deltaY + 'px');
+	this.jqe.css('left', this.x() + deltaX + 'px')
+	        .css('top' , this.y() + deltaY + 'px');
 	delete this.cache.x; // Flush cache
 	delete this.cache.y;
 };
-WordCloudItem.prototype.resize = function (newSize) {
-	this.jqe.css('font-size', Math.pow(newSize,.5)*100 + '%');
+WordCloudItem.prototype.resize = function (newSize, backpressure) {
+	if( backpressure == undefined || backpressure < 0.4 ) backpressure = 0.4;
+	var fontsize = Math.pow(newSize,.5);
+	if( fontsize < backpressure ) { // Remove from DOM
+		if( this.attached() ) {
+			this.jqe.detach();
+			delete this.cache.attached;
+		}
+	} else { // Make sure it's in the DOM
+		if( ! this.attached() ) {
+			this.move(Math.random()*(this.anchor.width()-100), Math.random()*(this.anchor.height()-50) );
+			this.anchor.jqe.append(this.jqe);
+			delete this.cache.attached;
+		}
+	}
+	this.jqe.css('font-size', fontsize*100 + '%');
 	delete this.cache.width; // Flush cache
 	delete this.cache.height;
 };
@@ -114,6 +142,8 @@ WordCloud = function(wordfreq, anchor, template) {
 	this.wordfreq = wordfreq;
 	this.anchor = new WordCloudAnchor(anchor);
 	this.template = template;
+	this.weight = 0;
+	this.backpressure = 0.1;
 
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
@@ -123,28 +153,20 @@ WordCloud = function(wordfreq, anchor, template) {
 
 WordCloud.prototype.newWord = function (newWord) {
 	var jqitem = this.template.clone().text(newWord);
-	// Instantiate randomly
-	jqitem.css('left', Math.random()*(this.anchor.width()-100) + 'px')
-	      .css('top', Math.random()*(this.anchor.height()-50) + 'px')
-	this.anchor.jqe.append(jqitem);
-	this.words[newWord] = new WordCloudItem(jqitem);
+	this.words[newWord] = new WordCloudItem(jqitem, this.anchor);
 };
 WordCloud.prototype.updateWord = function (word, count) {
-	if( count < 0.3 ) { // FIXME make parameter
-		// Element is too small, remove from DOM
-		if( this.words[ word ] != undefined ) {
-			this.words[ word ].jqe.remove();
-			delete this.words[ word ];
-		}
-	} else {
-		// Make sure this element exists in the DOM
-		if( this.words[ word ] == undefined ) { this.newWord(word); }
-		this.words[ word ].resize(count);
-	}
+	var wordObj = this.words[ word ];
+	this.weight -= wordObj.width() * wordObj.height();
+	wordObj.resize(count, this.backpressure );
+	this.weight += wordObj.width() * wordObj.height();
 };
 WordCloud.prototype.removedWord = function (word) {
-	this.words[ word ].jqe.remove();
-	delete this.words[ word ];
+	if( this.words[ word ] != undefined ) {
+		this.weight -= wordObj.width() * wordObj.height();
+		this.words[ word ].destroy(); // manually call destructor FIXME (if possible in JS)
+		delete this.words[ word ];
+	}
 }
 
 WordCloud.prototype.redraw = function() {
@@ -158,7 +180,7 @@ WordCloud.prototype.redraw = function() {
 			                      - (wordObj.y()+wordObj.height()/2) ];
 			var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
 			mv[0] /= length; mv[1] /= length;
-			mvx += mv[0]; mvy += mv[1];
+			mvx += .5*mv[0]; mvy += .5*mv[1];
 		}
 		// repulse from others
 		for( var otherWord in this.words ) {
@@ -169,9 +191,17 @@ WordCloud.prototype.redraw = function() {
 			    wordObj.x(), wordObj.y(), wordObj.width(), wordObj.height(),
 			    otherWordObj.x(), otherWordObj.y(), otherWordObj.width(), otherWordObj.height()
 				);
-			if( mv != false ) { mvx += 50*mv[0]; mvy += 50*mv[1]; }
+			if( mv != false ) { mvx += 10*mv[0]; mvy += 10*mv[1]; }
 		}
 		wordObj.moveRel( Math.round_away_from_zero(mvx),
 		                 Math.round_away_from_zero(mvy) );
 	}
+	var filled = this.weight/(this.anchor.width()*this.anchor.height());
+	if( filled > 0.4 ) {
+		this.backpressure *= 1.05;
+	} else if( filled < 0.3 ) {
+		this.backpressure /= 1.05;
+	}
+	this.backpressure = Math.max(this.backpressure, 0.1); // Make sure it never reaches 0
+	console.log("Filled for "+filled*100+"%, Backpressure = "+this.backpressure+"\n");
 };
