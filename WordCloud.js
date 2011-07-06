@@ -64,6 +64,7 @@ WordCloudAnchor.prototype.flushCache = function() {
 WordCloudItem = function(jqelement, anchor) {
 	this.jqe = jqelement;
 	this.anchor = anchor;
+	this.hideThreshold = 0.1;
 	this.cache = {};
 };
 WordCloudItem.prototype.destroy = function () {
@@ -118,10 +119,8 @@ WordCloudItem.prototype.moveRel = function (deltaX, deltaY) {
 	delete this.cache.x; // Flush cache
 	delete this.cache.y;
 };
-WordCloudItem.prototype.resize = function (newSize, backpressure) {
-	if( backpressure == undefined || backpressure < 0.4 ) backpressure = 0.4;
-	var fontsize = Math.pow(newSize,.5);
-	if( fontsize < backpressure ) { // Remove from DOM
+WordCloudItem.prototype.redraw = function () {
+	if( this.size < this.hideThreshold ) { // Remove from DOM
 		if( this.attached() ) {
 			this.jqe.detach();
 			delete this.cache.attached;
@@ -133,17 +132,21 @@ WordCloudItem.prototype.resize = function (newSize, backpressure) {
 			delete this.cache.attached;
 		}
 	}
-	this.jqe.css('font-size', fontsize*100 + '%');
+	this.jqe.css('font-size', Math.pow(this.size,.5)*100 + '%');
 	delete this.cache.width; // Flush cache
 	delete this.cache.height;
 };
+WordCloudItem.prototype.weight = function () {
+	if( this.attached() ) return 50 + this.width()*this.height();
+	return 0;
+}
 
 WordCloud = function(wordfreq, anchor, template) {
 	this.wordfreq = wordfreq;
 	this.anchor = new WordCloudAnchor(anchor);
 	this.template = template;
 	this.weight = 0;
-	this.backpressure = 0.1;
+	this.hideThreshold = 0.1;
 
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
@@ -157,9 +160,10 @@ WordCloud.prototype.newWord = function (newWord) {
 };
 WordCloud.prototype.updateWord = function (word, count) {
 	var wordObj = this.words[ word ];
-	this.weight -= wordObj.width() * wordObj.height();
-	wordObj.resize(count, this.backpressure );
-	this.weight += wordObj.width() * wordObj.height();
+	this.weight -= wordObj.weight();
+	wordObj.size = count;
+	wordObj.redraw();
+	this.weight += wordObj.weight();
 };
 WordCloud.prototype.removedWord = function (word) {
 	if( this.words[ word ] != undefined ) {
@@ -172,6 +176,7 @@ WordCloud.prototype.removedWord = function (word) {
 WordCloud.prototype.redraw = function() {
 	for( var word in this.words ) {
 		var wordObj = this.words[ word ];
+		if( ! wordObj.attached() ) continue;
 		var mvx = 0, mvy = 0;
 		{ // Go to center
 			var mv = [ this.anchor.width()/2
@@ -180,17 +185,18 @@ WordCloud.prototype.redraw = function() {
 			                      - (wordObj.y()+wordObj.height()/2) ];
 			var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
 			mv[0] /= length; mv[1] /= length;
-			mvx += .5*mv[0]; mvy += .5*mv[1];
+			mvx += .5*mv[0]; mvy += .3*mv[1]; // Asymetrical, to compensate for ellipsness
 		}
 		// repulse from others
 		for( var otherWord in this.words ) {
 			if( word == otherWord ) continue;
 			var otherWordObj = this.words[ otherWord ];
+			if( ! otherWordObj.attached() ) continue;
 			/* Check if the rectangles overlap */
 			var mv = rect_intersect(
 			    wordObj.x(), wordObj.y(), wordObj.width(), wordObj.height(),
 			    otherWordObj.x(), otherWordObj.y(), otherWordObj.width(), otherWordObj.height()
-				);
+			    );
 			if( mv != false ) { mvx += 10*mv[0]; mvy += 10*mv[1]; }
 		}
 		wordObj.moveRel( Math.round_away_from_zero(mvx),
@@ -198,10 +204,24 @@ WordCloud.prototype.redraw = function() {
 	}
 	var filled = this.weight/(this.anchor.width()*this.anchor.height());
 	if( filled > 0.4 ) {
-		this.backpressure *= 1.05;
-	} else if( filled < 0.3 ) {
-		this.backpressure /= 1.05;
+		this.hideThreshold *= 1.05;
+		console.log("Filled for "+filled*100+"%, Increasing backpressure to "+this.hideThreshold+"\n");
+		for( var word in this.words ) {
+			var wordObj = this.words[ word ];
+			wordObj.hideThreshold = this.hideThreshold;
+			this.weight -= wordObj.weight();
+			wordObj.redraw();
+			this.weight += wordObj.weight();
+		}
+	} else if( filled < 0.15 && this.hideThreshold > 0.1 ) {
+		this.hideThreshold /= 1.05;
+		console.log("Filled for "+filled*100+"%, Decreasing hide threshold to "+this.hideThreshold+"\n");
+		for( var word in this.words ) {
+			var wordObj = this.words[ word ];
+			wordObj.hideThreshold = this.hideThreshold;
+			this.weight -= wordObj.weight();
+			wordObj.redraw();
+			this.weight += wordObj.weight();
+		}
 	}
-	this.backpressure = Math.max(this.backpressure, 0.1); // Make sure it never reaches 0
-	console.log("Filled for "+filled*100+"%, Backpressure = "+this.backpressure+"\n");
 };
