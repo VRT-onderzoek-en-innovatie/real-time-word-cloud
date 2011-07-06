@@ -33,9 +33,10 @@
 			alert("Error getting stopwords.txt: "+textStatus);
 		}
 	});
-	var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem'/>") );
-	u = setInterval( function() { wordcloud.redraw(); }, 100 );
-
+   var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem'/>") );
+   u = setInterval( function() { wordcloud.redraw(); }, 100 );
+  </script>
+  <script type="text/javascript">
    var ffwd = 10;
    var now = 0;
    var events;
@@ -69,5 +70,48 @@
 		wordfreq.addWords(words);
    }
   </script>
+  <!-- Live script
+  <script type="text/javascript">
+   supported_actions = ['twitter','facebook','comment'];
+
+   $.getJSON('http://beheer.villavanthilt.be/activities.json?callback=?', function(data) {
+		var a = $.parseJSON( data.activities );
+		for(var i in a) {
+			if( $.inArray( a[i].action, supported_actions) > -1 ) {
+				add_words(a[i].message);
+			}
+		}
+   });
+
+   var socket = new io.Socket('46.137.24.146');
+   socket.connect();
+   socket.on('connect', function(){
+		socket.send( $.toJSON({ action: 'join', program: 'all' }) );
+   });
+   socket.on('disconnect', function(){
+		alert('disconected');
+		setTimeout("socket.connect();", 1000);
+   });
+   socket.on('message', function(e){ 
+		a = $.parseJSON( e.data );
+		if( $.inArray( a.activity.action, supported_actions) > -1 ) {
+			add_words( a.activity.message );
+		}
+   });
+
+
+   function add_words(text) {
+		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
+
+		{ // only count unique words, duplicate words in the same comment are ignored
+			h = {};
+			for(var i in words) { h[words[i]] = 1; }
+			words = [];
+			for(var i in h) { words.push(i); }
+		}
+
+		wordfreq.addWords(words);
+   }
+  </script>-->
  </body>
 </html>
