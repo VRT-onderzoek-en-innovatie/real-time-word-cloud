@@ -149,8 +149,20 @@ WordCloud = function(wordfreq, anchor, template) {
 	this.wordfreq = wordfreq;
 	this.anchor = new WordCloudAnchor(anchor);
 	this.template = template;
-	this.weight = 0;
-	this.hideThreshold = 0.1;
+
+	this.fill_feedback = {
+		hideThreshold: 0.1,
+		weight: 0, // accumulator
+		high: 0.4,
+		low: 0.15
+	};
+	this.cpu_feedback = {
+		hideThreshold: 0.1,
+		register: 0, // accumulator
+		ewma: 0.95, // Halftime of ~13 iterations
+		high: 80, // milliseconds
+		low: 40 // milliseconds
+	};
 
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
@@ -164,20 +176,21 @@ WordCloud.prototype.newWord = function (newWord) {
 };
 WordCloud.prototype.updateWord = function (word, count) {
 	var wordObj = this.words[ word ];
-	this.weight -= wordObj.weight();
+	this.fill_feedback.weight -= wordObj.weight();
 	wordObj.size = count;
 	wordObj.redraw();
-	this.weight += wordObj.weight();
+	this.fill_feedback.weight += wordObj.weight();
 };
 WordCloud.prototype.removedWord = function (word) {
 	if( this.words[ word ] != undefined ) {
-		this.weight -= wordObj.weight();;
+		this.fill_feedback.weight -= wordObj.weight();;
 		this.words[ word ].destroy(); // manually call destructor FIXME (if possible in JS)
 		delete this.words[ word ];
 	}
 }
 
 WordCloud.prototype.redraw = function() {
+	var startTime = +new Date();
 	for( var word in this.words ) {
 		var wordObj = this.words[ word ];
 		if( ! wordObj.attached() ) continue;
@@ -206,24 +219,42 @@ WordCloud.prototype.redraw = function() {
 		wordObj.moveRel( Math.round_away_from_zero(mvx),
 		                 Math.round_away_from_zero(mvy) );
 	}
-	var filled = this.weight/(this.anchor.width()*this.anchor.height());
-	if( filled > 0.4 ) {
-		this.hideThreshold *= 1.05;
+
+	// Feedback loops
+	var changed = "none";
+	if( this.fill_feedback.weight > this.fill_feedback.high*this.anchor.width()*this.anchor.height() ) {
+		this.fill_feedback.hideThreshold *= 1.05;
+		changed = "too full";
+	} else if( this.fill_feedback.weight < this.fill_feedback.low*this.anchor.width()*this.anchor.height() && this.fill_feedback.hideThreshold > 0.1 ) {
+		this.fill_feedback.hideThreshold /= 1.05;
+		changed = "too empty";
+	}
+
+	this.cpu_feedback.register *= this.cpu_feedback.ewma;
+	var dt = ((+new Date())-startTime);
+	this.cpu_feedback.register += dt;
+	if( this.cpu_feedback.register*(1-this.cpu_feedback.ewma) > this.cpu_feedback.high ) {
+		this.cpu_feedback.hideThreshold *= 1.05;
+		changed = "too slow";
+	} else if( this.cpu_feedback.register*(1-this.cpu_feedback.ewma) < this.cpu_feedback.low && this.cpu_feedback.hideThreshold > 0.1 ) {
+		this.cpu_feedback.hideThreshold /= 1.05;
+		changed = "too fast";
+	}
+
+	var hideThreshold = Math.max(this.cpu_feedback.hideThreshold, this.fill_feedback.hideThreshold);
+
+	if( changed != "none" ) {
+		console.log("Feedback loop: Fill[ "+this.fill_feedback.weight/this.anchor.width()/this.anchor.height()*100+"% ]"+
+		            " CPU[ "+this.cpu_feedback.register*(1-this.cpu_feedback.ewma)+"ms ] => "+hideThreshold+" ("+changed+")\n");
 		for( var word in this.words ) {
 			var wordObj = this.words[ word ];
-			wordObj.hideThreshold = this.hideThreshold;
-			this.weight -= wordObj.weight();
+			wordObj.hideThreshold = hideThreshold;
+			this.fill_feedback.weight -= wordObj.weight();
 			wordObj.redraw();
-			this.weight += wordObj.weight();
-		}
-	} else if( filled < 0.15 && this.hideThreshold > 0.1 ) {
-		this.hideThreshold /= 1.05;
-		for( var word in this.words ) {
-			var wordObj = this.words[ word ];
-			wordObj.hideThreshold = this.hideThreshold;
-			this.weight -= wordObj.weight();
-			wordObj.redraw();
-			this.weight += wordObj.weight();
+			this.fill_feedback.weight += wordObj.weight();
 		}
 	}
+
+	// Update to include feedback calculations in the timing loop
+	this.cpu_feedback.register += -dt + ((+new Date())-startTime);
 };
