@@ -153,8 +153,8 @@ WordCloud = function(wordfreq, anchor, template) {
 	this.fill_feedback = {
 		hideThreshold: 0.1,
 		weight: 0, // accumulator
-		high: 0.4,
-		low: 0.15
+		high: 0.5,
+		low: 0.20
 	};
 	this.cpu_feedback = {
 		hideThreshold: 0.1,
@@ -167,6 +167,10 @@ WordCloud = function(wordfreq, anchor, template) {
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
 	this.wordfreq.cb.updatedWord.push( function(word, count) { that.updateWord(word,count); } );
+	this.wordfreq.cb.removedWord.push( function(word) { that.removeWord(word); } );
+	this.wordfreq.cb.tick.push( function(reduce) {
+			that.fill_feedback.hideThreshold = Math.max(0.1,reduce(that.fill_feedback.hideThreshold));
+		} );
 	this.words = {};
 };
 

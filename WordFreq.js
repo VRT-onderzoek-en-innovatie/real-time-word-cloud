@@ -9,6 +9,7 @@ function WordFreq() {
 	this.cb.newWord = []; // callback( newWord )
 	this.cb.updatedWord = []; // callback( updatedWord, newCount )
 	this.cb.removedWord = []; // callback( removedWord )
+	this.cb.tick = []; // callback( reduction_function )
 }
 
 var dispatch_callback = function (/* cb array, arguments, … */) {
@@ -56,6 +57,7 @@ WordFreq.prototype.tick = function () {
 		dispatch_callback( that.cb.updatedWord, index, value.count );
 	});
 	this.cleanup();
+	dispatch_callback( this.cb.tick, reduce );
 };
 
 WordFreq.prototype.cleanup = function () {
