@@ -145,31 +145,78 @@ WordCloudItem.prototype.weight = function () {
 	return 0;
 }
 
+FeedBackLoop = function (tooLow, low, high, tooHigh, ewma) {
+	if( tooLow == undefined ) tooLow = 0;
+	if( low == undefined ) low = 0;
+	if( high == undefined ) high = 1E99;
+	if( tooHigh == undefined ) tooHigh = 1E99;
+	if( ewma == undefined ) ewma = 0;
+
+	// There are 5 zones, devided by 4 threshold:
+	//            value < tooLow  : take action to increase value
+	//  tooLow <= value < low     : prevent action to decrease value
+	//     low <= value < high    : don't interfere
+	//    high <= value < tooHigh : prevent action to increase value
+	// tooHigh <= value           : take action to decrease value
+	this.tooLow = tooLow;
+	this.low = low;
+	this.high = high;
+	this.tooHigh = tooHigh;
+	this.register = 0;
+	this.ewma = ewma; // = Math.pow( .5, 1/HalfTime )
+};
+FeedBackLoop.prototype.value = function() {
+	return this.register*(1-this.ewma);
+};
+FeedBackLoop.prototype.newData = function (value) {
+	this.register *= this.ewma;
+	this.register += value;
+
+	var value = this.value();
+	if( value < this.tooLow ) return "inc";
+	if( value < this.low ) return "inh dec";
+	if( value < this.high ) return "free";
+	if( value < this.tooHigh) return "inh inc";
+	return "dec";
+};
+
+/* static */ FeedBackLoop.prototype.combine = function (/* … */) {
+	var result = "free";
+	for( var i=0; i < arguments.length; i++ ) {
+		var add = arguments[i];
+		if( result == "free" ) result = add;
+		else if( add == "free" ) result = result;
+		else if( add == "inc" || add == "dec" ) result = add;
+		else if( result == "inc" && add == "inh inc" ) result = "free";
+		else if( result == "inc" && add == "inh dec" ) result = result;
+		else if( result == "dec" && add == "inh dec" ) result = "free";
+		else if( result == "dec" && add == "inh inc" ) result = result;
+		else console.log("FeedBackLoop.combine("+result+","+add+") undefined\n");
+
+		if( result == "inh inc" || result == "inh dec" ) result = "free";
+	}
+	return result;
+}
+
 WordCloud = function(wordfreq, anchor, template) {
 	this.wordfreq = wordfreq;
 	this.anchor = new WordCloudAnchor(anchor);
 	this.template = template;
 
-	this.fill_feedback = {
-		hideThreshold: 0.1,
-		weight: 0, // accumulator
-		high: 0.5,
-		low: 0.20
-	};
-	this.cpu_feedback = {
-		hideThreshold: 0.1,
-		register: 0, // accumulator
-		ewma: 0.95, // Halftime of ~13 iterations
-		high: 80, // milliseconds
-		low: 40 // milliseconds
-	};
+	this.hideThreshold = 0.1;
+
+	// Keep fill-grade between 20% and 50%
+	this.fill_feedback = new FeedBackLoop(.2, .2, .5, .5, 0);
+
+	// Prevent increase if CPU is >50%; decrease if >80%
+	this.cpu_feedback = new FeedBackLoop(0, 0, 50, 80, .95);
 
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
 	this.wordfreq.cb.updatedWord.push( function(word, count) { that.updateWord(word,count); } );
 	this.wordfreq.cb.removedWord.push( function(word) { that.removeWord(word); } );
 	this.wordfreq.cb.tick.push( function(reduce) {
-			that.fill_feedback.hideThreshold = Math.max(0.1,reduce(that.fill_feedback.hideThreshold));
+			that.hideThreshold = Math.max(0.1,reduce(that.hideThreshold));
 		} );
 	this.words = {};
 };
@@ -224,41 +271,42 @@ WordCloud.prototype.redraw = function() {
 		                 Math.round_away_from_zero(mvy) );
 	}
 
-	// Feedback loops
-	var changed = "none";
-	if( this.fill_feedback.weight > this.fill_feedback.high*this.anchor.width()*this.anchor.height() ) {
-		this.fill_feedback.hideThreshold *= 1.05;
-		changed = "too full";
-	} else if( this.fill_feedback.weight < this.fill_feedback.low*this.anchor.width()*this.anchor.height() && this.fill_feedback.hideThreshold > 0.1 ) {
-		this.fill_feedback.hideThreshold /= 1.05;
-		changed = "too empty";
-	}
-
-	this.cpu_feedback.register *= this.cpu_feedback.ewma;
-	var dt = ((+new Date())-startTime);
-	this.cpu_feedback.register += dt;
-	if( this.cpu_feedback.register*(1-this.cpu_feedback.ewma) > this.cpu_feedback.high ) {
-		this.cpu_feedback.hideThreshold *= 1.05;
-		changed = "too slow";
-	} else if( this.cpu_feedback.register*(1-this.cpu_feedback.ewma) < this.cpu_feedback.low && this.cpu_feedback.hideThreshold > 0.1 ) {
-		this.cpu_feedback.hideThreshold /= 1.05;
-		changed = "too fast";
-	}
-
-	var hideThreshold = Math.max(this.cpu_feedback.hideThreshold, this.fill_feedback.hideThreshold);
-
-	if( changed != "none" ) {
-		console.log("Feedback loop: Fill[ "+this.fill_feedback.weight/this.anchor.width()/this.anchor.height()*100+"% ]"+
-		            " CPU[ "+this.cpu_feedback.register*(1-this.cpu_feedback.ewma)+"ms ] => "+hideThreshold+" ("+changed+")\n");
+	{ // Feedback loops
+		// Fill
+		var filled = 0;
 		for( var word in this.words ) {
 			var wordObj = this.words[ word ];
-			wordObj.hideThreshold = hideThreshold;
-			this.fill_feedback.weight -= wordObj.weight();
-			wordObj.redraw();
-			this.fill_feedback.weight += wordObj.weight();
+			filled += wordObj.weight();
+		}
+		filled /= this.anchor.width() * this.anchor.height();
+
+		// CPU
+		var dt = ((+new Date())-startTime);
+
+
+		var action =
+			this.cpu_feedback.combine( this.fill_feedback.newData(filled),
+			                           this.cpu_feedback.newData(dt) );
+
+		if( action != "free" ) {
+			var changed = false;
+			if( action == "inc" && this.hideThreshold > 0.1 ) {
+				this.hideThreshold /= 1.05;
+				changed = true;
+			} else if( action == "dec" ) {
+				this.hideThreshold *= 1.05;
+				changed = true;
+			}
+			if( changed ) {
+				console.log("Feedback loop: Fill("+this.fill_feedback.value()+") "+
+				            "CPU("+this.cpu_feedback.value()+") "+
+							"=> "+action+" to "+this.hideThreshold+"\n");
+				for( var word in this.words ) {
+					var wordObj = this.words[ word ];
+					wordObj.hideThreshold = this.hideThreshold;
+					wordObj.redraw();
+				}
+			}
 		}
 	}
-
-	// Update to include feedback calculations in the timing loop
-	this.cpu_feedback.register += -dt + ((+new Date())-startTime);
 };
