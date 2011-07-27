@@ -69,12 +69,18 @@
 
 		wordfreq.addWords(words);
    }
+
+	function stoptime() {
+		clearInterval(u);
+		clearInterval(wct);
+		clearInterval(wordfreq.ewma_timer);
+	}
   </script>
   <!-- Live script
   <script type="text/javascript">
    supported_actions = ['twitter','facebook','comment'];
 
-   $.getJSON('http://beheer.villavanthilt.be/activities.json?callback=?', function(data) {
+   $.getJSON('http://beheer.villavanthilt.be/activities.json?offset=0&limit=20&callback=?', function(data) {
 		var a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
