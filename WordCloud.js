@@ -40,6 +40,7 @@ function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
 }
 
 Math.round_away_from_zero = function (x) { return (x >= 0 ? Math.ceil(x) : Math.floor(x) ); }
+Math.round_toward_zero = function (x) { return (x >= 0 ? Math.floor(x) : Math.ceil(x) ); }
 
 TwoDArray = function(width, height) {
 	this.width = width;
@@ -83,6 +84,7 @@ WordCloudItem = function(jqelement, anchor) {
 	this.jqe = jqelement;
 	this.anchor = anchor;
 	this.hideThreshold = 0.1;
+	this.acc = {x:0, y:0}; // Error accumulator
 	this.cache = {};
 };
 WordCloudItem.prototype.destroy = function () {
@@ -132,8 +134,17 @@ WordCloudItem.prototype.move = function (newX, newY) {
 	delete this.cache.y;
 };
 WordCloudItem.prototype.moveRel = function (deltaX, deltaY) {
-	this.jqe.css('left', this.x() + deltaX + 'px')
-	        .css('top' , this.y() + deltaY + 'px');
+	deltaX += this.acc.x; // Apply accumulated error
+	deltaY += this.acc.y;
+
+	var dx = Math.round_toward_zero(deltaX);
+	var dy = Math.round_toward_zero(deltaY);
+
+	this.acc.x = deltaX-dx;
+	this.acc.y = deltaY-dy;
+
+	this.jqe.css('left', this.x() + dx + 'px')
+	        .css('top' , this.y() + dy + 'px');
 	delete this.cache.x; // Flush cache
 	delete this.cache.y;
 };
