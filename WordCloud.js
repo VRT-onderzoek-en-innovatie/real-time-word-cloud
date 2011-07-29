@@ -88,7 +88,7 @@ WordCloudAnchor.prototype.conePotentialField = function () {
 		for( x=this.width(); x>=0; x-- ) {
 			var dx = x-cx;
 			var dy = y-cy;
-			this.cache.pf.setEl( x, y, Math.sqrt( dx*dx + dy*dy ) );
+			this.cache.pf.setEl( x, y, (dx*dx + dy*dy)/(this.width()+this.height()) );
 		}}
 	}
 	return this.cache.pf.clone();
@@ -249,7 +249,7 @@ WordCloud = function(wordfreq, anchor, template) {
 	this.hideThreshold = 0.1;
 
 	// Keep fill-grade between 20% and 50%
-	this.fill_feedback = new FeedBackLoop(.2, .2, .5, .5, 0);
+	this.fill_feedback = new FeedBackLoop(.2, .2, .4, .4, 0);
 
 	// Prevent increase if CPU is >50%; decrease if >80%
 	this.cpu_feedback = new FeedBackLoop(0, 0, 50, 80, .95);
@@ -293,7 +293,7 @@ WordCloud.prototype.redraw = function() {
 		var wordObj = this.words[ word ];
 		if( ! wordObj.attached() ) continue;
 
-		var factor = 10;
+		var factor = 2;
 		var border = 5;
 		var l=-border, t=-border, r=wordObj.width()+border, b=wordObj.height()+border;
 		var d = 1;
@@ -322,14 +322,19 @@ WordCloud.prototype.redraw = function() {
 		var wordObj = this.words[ word ];
 		if( ! wordObj.attached() ) continue;
 
-		// Sence potential {top,bottom}{left,right}
-		var ptl = pf.el( wordObj.x()                  , wordObj.y()                    );
-		var ptr = pf.el( wordObj.x() + wordObj.width(), wordObj.y()                    );
-		var pbl = pf.el( wordObj.x()                  , wordObj.y() + wordObj.height() );
-		var pbr = pf.el( wordObj.x() + wordObj.width(), wordObj.y() + wordObj.height() );
+		// Sense potential {top,bottom,left,right}
+		var pt=0,pb=0,pl=0,pr=0;
+		for( x=wordObj.width()+1; x>=0; x-- ) {
+			pt += pf.el( wordObj.x() + x, wordObj.y() );
+			pb += pf.el( wordObj.x() + x, wordObj.y() + wordObj.height()+1 );
+		}
+		for( y=wordObj.height()+1; y>=0; y-- ) {
+			pl += pf.el( wordObj.x(), wordObj.y() + y );
+			pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
+		}
 
-		var mvx = ((ptl+pbl) - (ptr+pbr)) * .03;
-		var mvy = ((ptl+ptr) - (pbl+pbr)) * .03;
+		var mvx = (pl - pr) / wordObj.height() * .1;
+		var mvy = (pt - pb) / wordObj.width() * .1;
 
 		wordObj.moveRel( mvx, mvy );
 	}
