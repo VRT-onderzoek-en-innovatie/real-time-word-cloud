@@ -252,7 +252,7 @@ WordCloud = function(wordfreq, anchor, template) {
 	this.fill_feedback = new FeedBackLoop(.2, .2, .4, .4, 0);
 
 	// Prevent increase if CPU is >50%; decrease if >80%
-	this.cpu_feedback = new FeedBackLoop(0, 0, 50, 80, .95);
+	this.cpu_feedback = new FeedBackLoop(0, 0, 50, 80, .90);
 
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
@@ -333,8 +333,8 @@ WordCloud.prototype.redraw = function() {
 			pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
 		}
 
-		var mvx = (pl - pr) / wordObj.height() * .1;
-		var mvy = (pt - pb) / wordObj.width() * .1;
+		var mvx = (pl - pr) / (wordObj.height()*wordObj.width()) * 2;
+		var mvy = (pt - pb) / (wordObj.width()*wordObj.height()) * 2;
 
 		wordObj.moveRel( mvx, mvy );
 	}
