@@ -39,10 +39,31 @@ function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
 	return mv;
 }
 
-Math.round_away_from_zero = function (x) { return (x >= 0 ? Math.ceil(x) : Math.floor(x) ); }
+Math.round_toward_zero = function (x) { return (x >= 0 ? Math.floor(x) : Math.ceil(x) ); }
+
+TwoDArray = function(width, height) {
+	this.width = width;
+	this.height = height;
+	this.length = width*height;
+	this.data = new Array(this.length);
+}
+TwoDArray.prototype.el = function(x,y) {
+	return this.data[ y*this.width + x ];
+}
+TwoDArray.prototype.setEl = function(x,y,v) {
+	this.data[ y*this.width + x ] = v;
+}
+TwoDArray.prototype.clone = function() {
+	var clone = new TwoDArray(this.width, this.height);
+	clone.data = this.data.slice();
+	return clone;
+}
 
 WordCloudAnchor = function(jqelement) {
 	this.jqe = jqelement;
+	this.cache = {};
+};
+WordCloudAnchor.prototype.flushCache = function() {
 	this.cache = {};
 };
 WordCloudAnchor.prototype.width = function() {
@@ -57,14 +78,27 @@ WordCloudAnchor.prototype.height = function() {
 	}
 	return this.cache.height;
 };
-WordCloudAnchor.prototype.flushCache = function() {
-	this.cache = {};
-};
+WordCloudAnchor.prototype.conePotentialField = function () {
+	if( this.cache.pf == undefined ) {
+		var cx = this.width()/2;
+		var cy = this.height()/2;
+
+		this.cache.pf = new TwoDArray(this.width()+1, this.height()+1);
+		for( y=this.height(); y>=0; y-- ) {
+		for( x=this.width(); x>=0; x-- ) {
+			var dx = x-cx;
+			var dy = y-cy;
+			this.cache.pf.setEl( x, y, Math.sqrt( dx*dx + dy*dy ) );
+		}}
+	}
+	return this.cache.pf.clone();
+}
 
 WordCloudItem = function(jqelement, anchor) {
 	this.jqe = jqelement;
 	this.anchor = anchor;
 	this.hideThreshold = 0.1;
+	this.acc = {x:0, y:0}; // Error accumulator
 	this.cache = {};
 };
 WordCloudItem.prototype.destroy = function () {
@@ -114,8 +148,17 @@ WordCloudItem.prototype.move = function (newX, newY) {
 	delete this.cache.y;
 };
 WordCloudItem.prototype.moveRel = function (deltaX, deltaY) {
-	this.jqe.css('left', this.x() + deltaX + 'px')
-	        .css('top' , this.y() + deltaY + 'px');
+	deltaX += this.acc.x; // Apply accumulated error
+	deltaY += this.acc.y;
+
+	var dx = Math.round_toward_zero(deltaX);
+	var dy = Math.round_toward_zero(deltaY);
+
+	this.acc.x = deltaX-dx;
+	this.acc.y = deltaY-dy;
+
+	this.jqe.css('left', this.x() + dx + 'px')
+	        .css('top' , this.y() + dy + 'px');
 	delete this.cache.x; // Flush cache
 	delete this.cache.y;
 };
@@ -242,33 +285,53 @@ WordCloud.prototype.removedWord = function (word) {
 
 WordCloud.prototype.redraw = function() {
 	var startTime = +new Date();
+
+	// Create potentialField
+	pf = this.anchor.conePotentialField();
+	//var pf = this.anchor.conePotentialField();
+	for( var word in this.words) {
+		var wordObj = this.words[ word ];
+		if( ! wordObj.attached() ) continue;
+
+		var factor = 10;
+		var border = 5;
+		var l=-border, t=-border, r=wordObj.width()+border, b=wordObj.height()+border;
+		var d = 1;
+		while(t<=b && l<=r) {
+			// Increment the border at distance d
+			for(var x=l; x<=r; x++) {
+				pf.setEl( wordObj.x()+x, wordObj.y()+t,
+					pf.el( wordObj.x()+x, wordObj.y()+t ) + factor*d ); // top row
+				if( t != b ) // check that we don't run over the same row twice
+				pf.setEl( wordObj.x()+x, wordObj.y()+b,
+					pf.el( wordObj.x()+x, wordObj.y()+b ) + factor*d ); // bottom row
+			}
+			for(var y=t+1; y<b; y++) { // Exclude first & last row (already done above)
+				pf.setEl( wordObj.x()+l, wordObj.y()+y,
+					pf.el( wordObj.x()+l, wordObj.y()+y ) + factor*d ); // left column
+				if( l != r )
+				pf.setEl( wordObj.x()+r, wordObj.y()+y,
+					pf.el( wordObj.x()+r, wordObj.y()+y ) + factor*d ); // right column
+			}
+			l++; r--; t++; b--; // Shrink box by 1 pixel
+			d++; // increment distance
+		}
+	}
+
 	for( var word in this.words ) {
 		var wordObj = this.words[ word ];
 		if( ! wordObj.attached() ) continue;
-		var mvx = 0, mvy = 0;
-		{ // Go to center
-			var mv = [ this.anchor.width()/2
-			                      - (wordObj.x()+wordObj.width()/2),
-			           this.anchor.height()/2
-			                      - (wordObj.y()+wordObj.height()/2) ];
-			var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
-			mv[0] /= length; mv[1] /= length;
-			mvx += .5*mv[0]; mvy += .2*mv[1]; // Asymetrical, to compensate for ellipsness
-		}
-		// repulse from others
-		for( var otherWord in this.words ) {
-			if( word == otherWord ) continue;
-			var otherWordObj = this.words[ otherWord ];
-			if( ! otherWordObj.attached() ) continue;
-			/* Check if the rectangles overlap */
-			var mv = rect_intersect(
-			    wordObj.x(), wordObj.y(), wordObj.width(), wordObj.height(),
-			    otherWordObj.x(), otherWordObj.y(), otherWordObj.width(), otherWordObj.height()
-			    );
-			if( mv != false ) { mvx += 10*mv[0]; mvy += 10*mv[1]; }
-		}
-		wordObj.moveRel( Math.round_away_from_zero(mvx),
-		                 Math.round_away_from_zero(mvy) );
+
+		// Sence potential {top,bottom}{left,right}
+		var ptl = pf.el( wordObj.x()                  , wordObj.y()                    );
+		var ptr = pf.el( wordObj.x() + wordObj.width(), wordObj.y()                    );
+		var pbl = pf.el( wordObj.x()                  , wordObj.y() + wordObj.height() );
+		var pbr = pf.el( wordObj.x() + wordObj.width(), wordObj.y() + wordObj.height() );
+
+		var mvx = ((ptl+pbl) - (ptr+pbr)) * .03;
+		var mvy = ((ptl+ptr) - (pbl+pbr)) * .03;
+
+		wordObj.moveRel( mvx, mvy );
 	}
 
 	{ // Feedback loops
@@ -310,3 +373,27 @@ WordCloud.prototype.redraw = function() {
 		}
 	}
 };
+
+function DEBUG_display_pf(pf) {
+	var debug_ctx = $("#debug")[0].getContext("2d");
+	var image = debug_ctx.createImageData( pf.width, pf.height );
+
+	var min=pf.data[0], max=pf.data[0];
+	for( var i=0; i < pf.length; i++ ) {
+		if( pf.data[i] < min ) min = pf.data[i];
+		if( pf.data[i] > max ) max = pf.data[i];
+	}
+	for( var i=0; i < pf.length; i++ ) {
+		image.data[ i*4 + 0 ] = (pf.data[i] - min)*255/(max-min); // R
+		image.data[ i*4 + 1 ] = (pf.data[i] - min)*255/(max-min); // G
+		image.data[ i*4 + 2 ] = (pf.data[i] - min)*255/(max-min); // B
+		image.data[ i*4 + 3 ] = 255; // A
+	}
+
+	debug_ctx.putImageData(image, 0, 0);
+}
+function DEBUG_clear_pf() {
+	var debug_ctx = $("#debug")[0].getContext("2d");
+	var image = debug_ctx.createImageData( pf.width, pf.height );
+	debug_ctx.putImageData(image, 0, 0);
+}
