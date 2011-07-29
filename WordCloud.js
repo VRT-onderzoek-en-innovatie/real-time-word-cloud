@@ -45,6 +45,9 @@ WordCloudAnchor = function(jqelement) {
 	this.jqe = jqelement;
 	this.cache = {};
 };
+WordCloudAnchor.prototype.flushCache = function() {
+	this.cache = {};
+};
 WordCloudAnchor.prototype.width = function() {
 	if( this.cache.width == undefined ) {
 		this.cache.width = this.jqe.width();
@@ -56,9 +59,6 @@ WordCloudAnchor.prototype.height = function() {
 		this.cache.height = this.jqe.height();
 	}
 	return this.cache.height;
-};
-WordCloudAnchor.prototype.flushCache = function() {
-	this.cache = {};
 };
 
 WordCloudItem = function(jqelement, anchor) {
