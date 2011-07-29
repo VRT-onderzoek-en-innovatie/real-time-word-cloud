@@ -79,6 +79,21 @@ WordCloudAnchor.prototype.height = function() {
 	}
 	return this.cache.height;
 };
+WordCloudAnchor.prototype.conePotentialField = function () {
+	if( this.cache.pf == undefined ) {
+		var cx = this.width()/2;
+		var cy = this.height()/2;
+
+		this.cache.pf = new TwoDArray(this.width()+1, this.height()+1);
+		for( y=this.height(); y>=0; y-- ) {
+		for( x=this.width(); x>=0; x-- ) {
+			var dx = x-cx;
+			var dy = y-cy;
+			this.cache.pf.setEl( x, y, Math.sqrt( dx*dx + dy*dy ) );
+		}}
+	}
+	return this.cache.pf.clone();
+}
 
 WordCloudItem = function(jqelement, anchor) {
 	this.jqe = jqelement;
@@ -339,3 +354,27 @@ WordCloud.prototype.redraw = function() {
 		}
 	}
 };
+
+function DEBUG_display_pf(pf) {
+	var debug_ctx = $("#debug")[0].getContext("2d");
+	var image = debug_ctx.createImageData( pf.width, pf.height );
+
+	var min=pf.data[0], max=pf.data[0];
+	for( var i=0; i < pf.length; i++ ) {
+		if( pf.data[i] < min ) min = pf.data[i];
+		if( pf.data[i] > max ) max = pf.data[i];
+	}
+	for( var i=0; i < pf.length; i++ ) {
+		image.data[ i*4 + 0 ] = (pf.data[i] - min)*255/(max-min); // R
+		image.data[ i*4 + 1 ] = (pf.data[i] - min)*255/(max-min); // G
+		image.data[ i*4 + 2 ] = (pf.data[i] - min)*255/(max-min); // B
+		image.data[ i*4 + 3 ] = 255; // A
+	}
+
+	debug_ctx.putImageData(image, 0, 0);
+}
+function DEBUG_clear_pf() {
+	var debug_ctx = $("#debug")[0].getContext("2d");
+	var image = debug_ctx.createImageData( pf.width, pf.height );
+	debug_ctx.putImageData(image, 0, 0);
+}

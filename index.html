@@ -16,7 +16,15 @@
  <body>
   <p>Current time: <span id="now"></span>, next event: <span id="next"></span></p>
   <div id="wordcloud" style="width: 640px; height: 480px;"></div>
+  <canvas id="debug" style="position: absolute; z-index: -1;"></canvas>
   <script src="jquery.js"></script>
+  <script type="text/javascript">
+	$("#debug").css('top', $("#wordcloud").position().top);
+	$("#debug").css('left', $("#wordcloud").position().left);
+	$("#debug").attr('width', $("#wordcloud").width()+1);
+	$("#debug").attr('height', $("#wordcloud").height()+1);
+  </script>
+
   <script src="WordFreq.js"></script>
   <script src="WordCloud.js"></script>
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
