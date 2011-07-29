@@ -41,6 +41,24 @@ function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
 
 Math.round_away_from_zero = function (x) { return (x >= 0 ? Math.ceil(x) : Math.floor(x) ); }
 
+TwoDArray = function(width, height) {
+	this.width = width;
+	this.height = height;
+	this.length = width*height;
+	this.data = new Array(this.length);
+}
+TwoDArray.prototype.el = function(x,y) {
+	return this.data[ y*this.width + x ];
+}
+TwoDArray.prototype.setEl = function(x,y,v) {
+	this.data[ y*this.width + x ] = v;
+}
+TwoDArray.prototype.clone = function() {
+	var clone = new TwoDArray(this.width, this.height);
+	clone.data = this.data.slice();
+	return clone;
+}
+
 WordCloudAnchor = function(jqelement) {
 	this.jqe = jqelement;
 	this.cache = {};
