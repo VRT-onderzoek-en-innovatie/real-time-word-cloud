@@ -39,7 +39,6 @@ function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
 	return mv;
 }
 
-Math.round_away_from_zero = function (x) { return (x >= 0 ? Math.ceil(x) : Math.floor(x) ); }
 Math.round_toward_zero = function (x) { return (x >= 0 ? Math.floor(x) : Math.ceil(x) ); }
 
 TwoDArray = function(width, height) {
