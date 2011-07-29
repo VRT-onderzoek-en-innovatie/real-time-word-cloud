@@ -295,7 +295,7 @@ WordCloud.prototype.redraw = function() {
 
 		var factor = 2;
 		var border = 5;
-		var l=-border, t=-border, r=wordObj.width()+border, b=wordObj.height()+border;
+		var l=-border, t=-border, r=wordObj.width()+1+border, b=wordObj.height()+1+border;
 		var d = 1;
 		while(t<=b && l<=r) {
 			// Increment the border at distance d
