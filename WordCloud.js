@@ -286,97 +286,107 @@ WordCloud.prototype.removedWord = function (word) {
 WordCloud.prototype.redraw = function() {
 	var startTime = +new Date();
 
+	var that = this; // Prepare closure
+
 	// Create potentialField
-	pf = this.anchor.conePotentialField();
-	//var pf = this.anchor.conePotentialField();
-	for( var word in this.words) {
-		var wordObj = this.words[ word ];
-		if( ! wordObj.attached() ) continue;
+	function calcPF() {
+		var pf = that.anchor.conePotentialField();
+		//var pf = this.anchor.conePotentialField();
+		for( var word in that.words) {
+			var wordObj = that.words[ word ];
+			if( ! wordObj.attached() ) continue;
 
-		var factor = 2;
-		var border = 5;
-		var l=-border, t=-border, r=wordObj.width()+1+border, b=wordObj.height()+1+border;
-		var d = 1;
-		while(t<=b && l<=r) {
-			// Increment the border at distance d
-			for(var x=l; x<=r; x++) {
-				pf.setEl( wordObj.x()+x, wordObj.y()+t,
-					pf.el( wordObj.x()+x, wordObj.y()+t ) + factor*d ); // top row
-				if( t != b ) // check that we don't run over the same row twice
-				pf.setEl( wordObj.x()+x, wordObj.y()+b,
-					pf.el( wordObj.x()+x, wordObj.y()+b ) + factor*d ); // bottom row
+			var factor = 2;
+			var border = 5;
+			var l=-border, t=-border, r=wordObj.width()+1+border, b=wordObj.height()+1+border;
+			var d = 1;
+			while(t<=b && l<=r) {
+				// Increment the border at distance d
+				for(var x=l; x<=r; x++) {
+					pf.setEl( wordObj.x()+x, wordObj.y()+t,
+						pf.el( wordObj.x()+x, wordObj.y()+t ) + factor*d ); // top row
+					if( t != b ) // check that we don't run over the same row twice
+					pf.setEl( wordObj.x()+x, wordObj.y()+b,
+						pf.el( wordObj.x()+x, wordObj.y()+b ) + factor*d ); // bottom row
+				}
+				for(var y=t+1; y<b; y++) { // Exclude first & last row (already done above)
+					pf.setEl( wordObj.x()+l, wordObj.y()+y,
+						pf.el( wordObj.x()+l, wordObj.y()+y ) + factor*d ); // left column
+					if( l != r )
+					pf.setEl( wordObj.x()+r, wordObj.y()+y,
+						pf.el( wordObj.x()+r, wordObj.y()+y ) + factor*d ); // right column
+				}
+				l++; r--; t++; b--; // Shrink box by 1 pixel
+				d++; // increment distance
 			}
-			for(var y=t+1; y<b; y++) { // Exclude first & last row (already done above)
-				pf.setEl( wordObj.x()+l, wordObj.y()+y,
-					pf.el( wordObj.x()+l, wordObj.y()+y ) + factor*d ); // left column
-				if( l != r )
-				pf.setEl( wordObj.x()+r, wordObj.y()+y,
-					pf.el( wordObj.x()+r, wordObj.y()+y ) + factor*d ); // right column
+		}
+		return pf;
+	};
+	var pf = calcPF();
+
+	function applyPF() { // Apply potfield
+		for( var word in that.words ) {
+			var wordObj = that.words[ word ];
+			if( ! wordObj.attached() ) continue;
+	
+			// Sense potential {top,bottom,left,right}
+			var pt=0,pb=0,pl=0,pr=0;
+			for( x=wordObj.width()+1; x>=0; x-- ) {
+				pt += pf.el( wordObj.x() + x, wordObj.y() );
+				pb += pf.el( wordObj.x() + x, wordObj.y() + wordObj.height()+1 );
 			}
-			l++; r--; t++; b--; // Shrink box by 1 pixel
-			d++; // increment distance
+			for( y=wordObj.height()+1; y>=0; y-- ) {
+				pl += pf.el( wordObj.x(), wordObj.y() + y );
+				pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
+			}
+	
+			var mvx = (pl - pr) / (wordObj.height()*wordObj.width()) * 2;
+			var mvy = (pt - pb) / (wordObj.width()*wordObj.height()) * 2;
+	
+			wordObj.moveRel( mvx, mvy );
 		}
-	}
+	};
+	applyPF();
 
-	for( var word in this.words ) {
-		var wordObj = this.words[ word ];
-		if( ! wordObj.attached() ) continue;
-
-		// Sense potential {top,bottom,left,right}
-		var pt=0,pb=0,pl=0,pr=0;
-		for( x=wordObj.width()+1; x>=0; x-- ) {
-			pt += pf.el( wordObj.x() + x, wordObj.y() );
-			pb += pf.el( wordObj.x() + x, wordObj.y() + wordObj.height()+1 );
-		}
-		for( y=wordObj.height()+1; y>=0; y-- ) {
-			pl += pf.el( wordObj.x(), wordObj.y() + y );
-			pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
-		}
-
-		var mvx = (pl - pr) / (wordObj.height()*wordObj.width()) * 2;
-		var mvy = (pt - pb) / (wordObj.width()*wordObj.height()) * 2;
-
-		wordObj.moveRel( mvx, mvy );
-	}
-
-	{ // Feedback loops
+	function calcFeedback() { // Feedback loops
 		// Fill
 		var filled = 0;
-		for( var word in this.words ) {
-			var wordObj = this.words[ word ];
+		for( var word in that.words ) {
+			var wordObj = that.words[ word ];
 			filled += wordObj.weight();
 		}
-		filled /= this.anchor.width() * this.anchor.height();
+		filled /= that.anchor.width() * that.anchor.height();
 
 		// CPU
 		var dt = ((+new Date())-startTime);
 
 
 		var action =
-			this.cpu_feedback.combine( this.fill_feedback.newData(filled),
-			                           this.cpu_feedback.newData(dt) );
+			that.cpu_feedback.combine( that.fill_feedback.newData(filled),
+			                           that.cpu_feedback.newData(dt) );
 
 		if( action != "free" ) {
 			var changed = false;
-			if( action == "inc" && this.hideThreshold > 0.1 ) {
-				this.hideThreshold /= 1.05;
+			if( action == "inc" && that.hideThreshold > 0.1 ) {
+				that.hideThreshold /= 1.05;
 				changed = true;
 			} else if( action == "dec" ) {
-				this.hideThreshold *= 1.05;
+				that.hideThreshold *= 1.05;
 				changed = true;
 			}
 			if( changed ) {
-				console.log("Feedback loop: Fill("+this.fill_feedback.value()+") "+
-				            "CPU("+this.cpu_feedback.value()+") "+
-							"=> "+action+" to "+this.hideThreshold+"\n");
-				for( var word in this.words ) {
-					var wordObj = this.words[ word ];
-					wordObj.hideThreshold = this.hideThreshold;
+				console.log("Feedback loop: Fill("+that.fill_feedback.value()+") "+
+				            "CPU("+that.cpu_feedback.value()+") "+
+							"=> "+action+" to "+that.hideThreshold+"\n");
+				for( var word in that.words ) {
+					var wordObj = that.words[ word ];
+					wordObj.hideThreshold = that.hideThreshold;
 					wordObj.redraw();
 				}
 			}
 		}
 	}
+	calcFeedback();
 };
 
 function DEBUG_display_pf(pf) {
