@@ -17,21 +17,6 @@
 		display: inline-block;
 		padding: 0.1em;
 	}
-	div#wordcloud div.color1 {
-		color: #8dc3f2;
-	}
-	div#wordcloud div.color2 {
-		color: #cbe4f8;
-	}
-	div#wordcloud div.color3 {
-		color: #f2f2f2;
-	}
-	div#wordcloud div.color4 {
-		color: #8cbf1f;
-	}
-	div#wordcloud div.color5 {
-		color: #7aa61b;
-	}
   </style>
  </head>
  <body>
@@ -54,8 +39,8 @@
 			alert("Error getting stopwords.txt: "+textStatus);
 		}
 	});
-   var color = "color" + Math.floor ( Math.random ( ) * 5 + 1 );
-   var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem " + color + "'/>") );
+   //var color = "color" + Math.floor ( Math.random ( ) * 5 + 1 );
+   var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem'/>") );
    u = setInterval( function() { wordcloud.redraw(); }, 100 );
   </script>
   <script type="text/javascript">
