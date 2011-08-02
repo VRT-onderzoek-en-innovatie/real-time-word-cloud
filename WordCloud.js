@@ -99,6 +99,14 @@ WordCloudItem = function(jqelement, anchor) {
 	this.anchor = anchor;
 	this.hideThreshold = 0.1;
 	this.acc = {x:0, y:0}; // Error accumulator
+	// set the color
+	switch (Math.floor ( Math.random ( ) * 5 + 1 )) {
+		case 1: this.color = "#8dc3f2"; break;
+		case 2: this.color = "#cbe4f8"; break;
+		case 3: this.color = "#f2f2f2"; break;
+		case 4: this.color = "#8cbf1f"; break;
+		default: this.color = "#7aa61b"; break;
+	}
 	this.cache = {};
 };
 WordCloudItem.prototype.destroy = function () {
@@ -137,7 +145,7 @@ WordCloudItem.prototype.attached = function() {
 		this.cache.attached = ( this.jqe.parent().length != 0 );
 	}
 	return this.cache.attached;
-}
+};
 WordCloudItem.prototype.flushCache = function() {
 	this.cache = {};
 };
@@ -180,6 +188,7 @@ WordCloudItem.prototype.redraw = function () {
 		}
 	}
 	this.jqe.css('font-size', Math.pow(this.size,.5)*100 + '%');
+	this.jqe.css('color', this.color); // set the color
 	delete this.cache.width; // Flush cache
 	delete this.cache.height;
 };
