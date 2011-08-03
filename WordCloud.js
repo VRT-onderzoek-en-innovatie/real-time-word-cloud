@@ -304,7 +304,14 @@ WordCloud.prototype.redraw = function() {
 				pl += pf[ (wy + y)*pfw + wx ];
 				pr += pf[ (wy + y)*pfw + wx + ww ];
 			}
-	
+
+			// Extend the potfield outside the bounds to
+			// something higher than whatever (pf[0]*2)
+			if( isNaN(pt) ) pt = pf[0]*2 * ww;
+			if( isNaN(pb) ) pb = pf[0]*2 * ww;
+			if( isNaN(pl) ) pl = pf[0]*2 * wh;
+			if( isNaN(pr) ) pr = pf[0]*2 * wh;
+
 			var area = ww*wh;
 			var mvx = (pl - pr) / area * 2;
 			var mvy = (pt - pb) / area * 2;
