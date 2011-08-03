@@ -341,7 +341,7 @@ WordCloud.prototype.redraw = function() {
 		for( var word in that.words ) {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
-	
+
 			// Sense potential {top,bottom,left,right}
 			var pt=0,pb=0,pl=0,pr=0;
 			for( x=wordObj.width(); x>=0; x-- ) {
