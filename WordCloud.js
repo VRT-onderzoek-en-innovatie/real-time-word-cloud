@@ -41,24 +41,6 @@ function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
 
 Math.round_toward_zero = function (x) { return (x >= 0 ? Math.floor(x) : Math.ceil(x) ); }
 
-TwoDArray = function(width, height) {
-	this.width = width;
-	this.height = height;
-	this.length = width*height;
-	this.data = new Array(this.length);
-}
-TwoDArray.prototype.el = function(x,y) {
-	return this.data[ y*this.width + x ];
-}
-TwoDArray.prototype.setEl = function(x,y,v) {
-	this.data[ y*this.width + x ] = v;
-}
-TwoDArray.prototype.clone = function() {
-	var clone = new TwoDArray(this.width, this.height);
-	clone.data = this.data.slice();
-	return clone;
-}
-
 WordCloudAnchor = function(jqelement) {
 	this.jqe = jqelement;
 	this.cache = {};
@@ -83,15 +65,15 @@ WordCloudAnchor.prototype.conePotentialField = function () {
 		var cx = this.width()/2;
 		var cy = this.height()/2;
 
-		this.cache.pf = new TwoDArray(this.width(), this.height());
+		this.cache.pf = new Array( this.width() * this.height() );
 		for( y=this.height()-1; y>=0; y-- ) {
 		for( x=this.width()-1; x>=0; x-- ) {
 			var dx = x-cx;
 			var dy = y-cy;
-			this.cache.pf.setEl( x, y, (dx*dx + dy*dy)/(this.width()+this.height()) );
+			this.cache.pf[ y*this.width() + x ] = (dx*dx + dy*dy)/(this.width()+this.height());
 		}}
 	}
-	return this.cache.pf.clone();
+	return this.cache.pf.slice(); // Copy the array
 }
 
 WordCloudItem = function(jqelement, anchor) {
@@ -300,6 +282,7 @@ WordCloud.prototype.redraw = function() {
 	// Create potentialField
 	function calcPF() {
 		var pf = that.anchor.conePotentialField();
+		var pfw = that.anchor.width(); // potential field width
 		//var pf = this.anchor.conePotentialField();
 		for( var word in that.words) {
 			var wordObj = that.words[ word ];
@@ -316,18 +299,14 @@ WordCloud.prototype.redraw = function() {
 			while(t<=b && l<=r) {
 				// Increment the border at distance d
 				for(var x=l; x<r; x++) {
-					pf.setEl( wx+x, wy+t,
-						pf.el( wx+x, wy+t ) + factor*d ); // top row
+					pf[ (wy+t)*pfw + wx+x ] += factor*d; // top row
 					if( t != b ) // check that we don't run over the same row twice
-					pf.setEl( wx+x, wy+b,
-						pf.el( wx+x, wy+b ) + factor*d ); // bottom row
+						pf[ (wy+b)*pfw + wx+x ] += factor*d; // bottom row
 				}
 				for(var y=t+1; y<b-1; y++) { // Exclude first & last row (already done above)
-					pf.setEl( wx+l, wy+y,
-						pf.el( wx+l, wy+y ) + factor*d ); // left column
+					pf[ (wy+y)*pfw + wx+l ] += factor*d; // left column
 					if( l != r )
-					pf.setEl( wx+r, wy+y,
-						pf.el( wx+r, wy+y ) + factor*d ); // right column
+						pf[ (wy+y)*pfw + wx+r ] += factor*d; // right column
 				}
 				l++; r--; t++; b--; // Shrink box by 1 pixel
 				d++; // increment distance
@@ -336,21 +315,26 @@ WordCloud.prototype.redraw = function() {
 		return pf;
 	};
 	var pf = calcPF();
+	var pfw = that.anchor.width(); // potential field width
 
 	function applyPF() { // Apply potfield
 		for( var word in that.words ) {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
 
+			// This ruins the caching abstraction layer
+			// But gives a performance boost
+			var wx=wordObj.x(), wy=wordObj.y();
+
 			// Sense potential {top,bottom,left,right}
 			var pt=0,pb=0,pl=0,pr=0;
 			for( x=wordObj.width(); x>=0; x-- ) {
-				pt += pf.el( wordObj.x() + x, wordObj.y() );
-				pb += pf.el( wordObj.x() + x, wordObj.y() + wordObj.height()+1 );
+				pt += pf[ (wy)*pfw + wordObj.x() + x ];
+				pb += pf[ (wordObj.y() + wordObj.height())*pfw + wordObj.x() + x ];
 			}
 			for( y=wordObj.height(); y>=0; y-- ) {
-				pl += pf.el( wordObj.x(), wordObj.y() + y );
-				pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
+				pl += pf[ (wordObj.y() + y)*pfw + wordObj.x() ];
+				pr += pf[ (wordObj.y() + y)*pfw + wordObj.x() + wordObj.width() ];
 			}
 	
 			var mvx = (pl - pr) / (wordObj.height()*wordObj.width()) * 2;
@@ -404,17 +388,17 @@ WordCloud.prototype.redraw = function() {
 
 function DEBUG_display_pf(pf) {
 	var debug_ctx = $("#debug")[0].getContext("2d");
-	var image = debug_ctx.createImageData( pf.width, pf.height );
+	var image = debug_ctx.createImageData( $("#debug").width(), $("#debug").height() );
 
-	var min=pf.data[0], max=pf.data[0];
+	var min=pf[0], max=pf[0];
 	for( var i=0; i < pf.length; i++ ) {
-		if( pf.data[i] < min ) min = pf.data[i];
-		if( pf.data[i] > max ) max = pf.data[i];
+		if( pf[i] < min ) min = pf[i];
+		if( pf[i] > max ) max = pf[i];
 	}
 	for( var i=0; i < pf.length; i++ ) {
-		image.data[ i*4 + 0 ] = (pf.data[i] - min)*255/(max-min); // R
-		image.data[ i*4 + 1 ] = (pf.data[i] - min)*255/(max-min); // G
-		image.data[ i*4 + 2 ] = (pf.data[i] - min)*255/(max-min); // B
+		image.data[ i*4 + 0 ] = (pf[i] - min)*255/(max-min); // R
+		image.data[ i*4 + 1 ] = (pf[i] - min)*255/(max-min); // G
+		image.data[ i*4 + 2 ] = (pf[i] - min)*255/(max-min); // B
 		image.data[ i*4 + 3 ] = 255; // A
 	}
 
