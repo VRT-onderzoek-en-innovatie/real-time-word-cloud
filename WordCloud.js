@@ -1,44 +1,3 @@
-function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
-	/* Do the rectangles A and B intersect?
-	 * Each are specified by their left-top corner {a,b}{x,y}
-	 * and their width and hight {a,b}{w,h} (exclusive)
-	 * This function returns either false if the rectangles
-	 * do not overlap, or a vector [x,y] to move A away from B
-	 */
-	
-	// Make sure {a,b}{w,h} are positive
-	if( aw < 0 ) { ax = ax + aw; aw = -aw; }
-	if( ah < 0 ) { ay = ay + ah; ah = -ah; }
-	if( bw < 0 ) { bx = bx + bw; bw = -bw; }
-	if( bh < 0 ) { by = by + bh; bh = -bh; }
-
-	if( ax+aw <= bx /* A left of B */ ) return false;
-	if( bx+bw <= ax /* A right of B */ ) return false;
-	if( ay+ah <= by /* A above B */ ) return false;
-	if( by+bh <= ay /* A below B */ ) return false;
-
-	// OK, they overlap; Move away in this direction
-	var mv = [ (ax+aw/2) - (bx+bw/2) , (ay+ah/2) - (by+bh/2) ];
-	{
-		var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
-		mv[0] /= length; mv[1] /= length;
-	}
-
-	{ // Now find the intersection area to scale that vector
-		var ix = Math.max(ax,bx);
-		var iy = Math.max(ay,by);
-		var ix2 = Math.min(ax+aw, bx+bw);
-		var iy2 = Math.min(ay+ah, by+bh);
-		var iw = ix2-ix;
-		var ih = iy2-iy;
-		var area = iw*ih;
-		area /= aw*ah;
-		mv[0] *= area; mv[1] *= area;
-	}
-
-	return mv;
-}
-
 Math.round_toward_zero = function (x) { return (x >= 0 ? Math.floor(x) : Math.ceil(x) ); }
 
 WordCloudAnchor = function(jqelement) {
@@ -279,10 +238,10 @@ WordCloud.prototype.redraw = function() {
 
 	var that = this; // Prepare closure
 
-	// Create potentialField
-	function calcPF() {
-		var pf = that.anchor.conePotentialField();
-		var pfw = that.anchor.width(); // potential field width
+	var pf; // Use direct array access; using an object for abstraction causes performance issues...
+	var pfw = that.anchor.width(); // potential field width
+	{ // Create potentialField
+		pf = that.anchor.conePotentialField();
 		//var pf = this.anchor.conePotentialField();
 		for( var word in that.words) {
 			var wordObj = that.words[ word ];
@@ -312,12 +271,9 @@ WordCloud.prototype.redraw = function() {
 				d++; // increment distance
 			}
 		}
-		return pf;
 	};
-	var pf = calcPF();
-	var pfw = that.anchor.width(); // potential field width
 
-	function applyPF() { // Apply potfield
+	{ // Apply potfield
 		for( var word in that.words ) {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
@@ -342,10 +298,9 @@ WordCloud.prototype.redraw = function() {
 	
 			wordObj.moveRel( mvx, mvy );
 		}
-	};
-	applyPF();
+	}
 
-	function calcFeedback() { // Feedback loops
+	{ // Feedback loops
 		// Fill
 		var filled = 0;
 		for( var word in that.words ) {
@@ -383,7 +338,6 @@ WordCloud.prototype.redraw = function() {
 			}
 		}
 	}
-	calcFeedback();
 };
 
 function DEBUG_display_pf(pf) {
