@@ -305,6 +305,10 @@ WordCloud.prototype.redraw = function() {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
 
+			// This ruins the caching abstraction layer
+			// But gives a performance boost
+			var wx=wordObj.x(), wy=wordObj.y();
+
 			var factor = 2;
 			var border = 5;
 			var l=-border, t=-border, r=wordObj.width()+1+border, b=wordObj.height()+1+border;
@@ -312,18 +316,18 @@ WordCloud.prototype.redraw = function() {
 			while(t<=b && l<=r) {
 				// Increment the border at distance d
 				for(var x=l; x<=r; x++) {
-					pf.setEl( wordObj.x()+x, wordObj.y()+t,
-						pf.el( wordObj.x()+x, wordObj.y()+t ) + factor*d ); // top row
+					pf.setEl( wx+x, wy+t,
+						pf.el( wx+x, wy+t ) + factor*d ); // top row
 					if( t != b ) // check that we don't run over the same row twice
-					pf.setEl( wordObj.x()+x, wordObj.y()+b,
-						pf.el( wordObj.x()+x, wordObj.y()+b ) + factor*d ); // bottom row
+					pf.setEl( wx+x, wy+b,
+						pf.el( wx+x, wy+b ) + factor*d ); // bottom row
 				}
 				for(var y=t+1; y<b; y++) { // Exclude first & last row (already done above)
-					pf.setEl( wordObj.x()+l, wordObj.y()+y,
-						pf.el( wordObj.x()+l, wordObj.y()+y ) + factor*d ); // left column
+					pf.setEl( wx+l, wy+y,
+						pf.el( wx+l, wy+y ) + factor*d ); // left column
 					if( l != r )
-					pf.setEl( wordObj.x()+r, wordObj.y()+y,
-						pf.el( wordObj.x()+r, wordObj.y()+y ) + factor*d ); // right column
+					pf.setEl( wx+r, wy+y,
+						pf.el( wx+r, wy+y ) + factor*d ); // right column
 				}
 				l++; r--; t++; b--; // Shrink box by 1 pixel
 				d++; // increment distance
