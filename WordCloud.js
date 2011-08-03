@@ -315,7 +315,7 @@ WordCloud.prototype.redraw = function() {
 			var area = ww*wh;
 			var mvx = (pl - pr) / area * 2;
 			var mvy = (pt - pb) / area * 2;
-	
+
 			wordObj.moveRel( mvx, mvy );
 		}
 	}
