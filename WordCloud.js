@@ -247,25 +247,36 @@ WordCloud.prototype.redraw = function() {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
 
+			var factor = 2; // Steepness of the potential
+			var border = 5; // border pixels to include
+
 			// This ruins the caching abstraction layer
 			// But gives a performance boost
-			var wx=wordObj.x(), wy=wordObj.y();
+			var wx=wordObj.x(), wy=wordObj.y(),
+			    ww=wordObj.width(), wh=wordObj.height();
 
-			var factor = 2;
-			var border = 5;
-			var l=-border, t=-border, r=wordObj.width()+border, b=wordObj.height()+border;
-			var d = 1;
+			var l = wx - border,
+			    t = wy - border,
+			    r = wx + ww + border,
+			    b = wy + wh + border;
+			if( l < 0 ) l = 0;
+			if( t < 0 ) t = 0;
+			if( r > that.anchor.width() ) r = that.anchor.width();
+			if( b > that.anchor.height() ) b = that.anchor.height();
+
+			var d = 1; // How far are we from the border (i.e. how high is the potential)
 			while(t<=b && l<=r) {
-				// Increment the border at distance d
+				// Iterate over the full area, starting with the outer border
+				// and working our way inwards
 				for(var x=l; x<r; x++) {
-					pf[ (wy+t)*pfw + wx+x ] += factor*d; // top row
+					pf[ t*pfw + x ] += factor*d; // top row
 					if( t != b ) // check that we don't run over the same row twice
-						pf[ (wy+b)*pfw + wx+x ] += factor*d; // bottom row
+						pf[ b*pfw + x ] += factor*d; // bottom row
 				}
 				for(var y=t+1; y<b-1; y++) { // Exclude first & last row (already done above)
-					pf[ (wy+y)*pfw + wx+l ] += factor*d; // left column
+					pf[ y*pfw + l ] += factor*d; // left column
 					if( l != r )
-						pf[ (wy+y)*pfw + wx+r ] += factor*d; // right column
+						pf[ y*pfw + r ] += factor*d; // right column
 				}
 				l++; r--; t++; b--; // Shrink box by 1 pixel
 				d++; // increment distance
@@ -280,21 +291,23 @@ WordCloud.prototype.redraw = function() {
 
 			// This ruins the caching abstraction layer
 			// But gives a performance boost
-			var wx=wordObj.x(), wy=wordObj.y();
+			var wx=wordObj.x(), wy=wordObj.y(),
+			    ww=wordObj.width(), wh=wordObj.height();
 
 			// Sense potential {top,bottom,left,right}
 			var pt=0,pb=0,pl=0,pr=0;
-			for( x=wordObj.width(); x>=0; x-- ) {
-				pt += pf[ (wy)*pfw + wordObj.x() + x ];
-				pb += pf[ (wordObj.y() + wordObj.height())*pfw + wordObj.x() + x ];
+			for( x=ww; x>=0; x-- ) {
+				pt += pf[ (wy)*pfw + wx + x ];
+				pb += pf[ (wy + wh)*pfw + wx + x ];
 			}
-			for( y=wordObj.height(); y>=0; y-- ) {
-				pl += pf[ (wordObj.y() + y)*pfw + wordObj.x() ];
-				pr += pf[ (wordObj.y() + y)*pfw + wordObj.x() + wordObj.width() ];
+			for( y=wh; y>=0; y-- ) {
+				pl += pf[ (wy + y)*pfw + wx ];
+				pr += pf[ (wy + y)*pfw + wx + ww ];
 			}
 	
-			var mvx = (pl - pr) / (wordObj.height()*wordObj.width()) * 2;
-			var mvy = (pt - pb) / (wordObj.width()*wordObj.height()) * 2;
+			var area = ww*wh;
+			var mvx = (pl - pr) / area * 2;
+			var mvy = (pt - pb) / area * 2;
 	
 			wordObj.moveRel( mvx, mvy );
 		}
