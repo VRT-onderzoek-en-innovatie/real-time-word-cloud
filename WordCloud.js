@@ -83,9 +83,9 @@ WordCloudAnchor.prototype.conePotentialField = function () {
 		var cx = this.width()/2;
 		var cy = this.height()/2;
 
-		this.cache.pf = new TwoDArray(this.width()+1, this.height()+1);
-		for( y=this.height(); y>=0; y-- ) {
-		for( x=this.width(); x>=0; x-- ) {
+		this.cache.pf = new TwoDArray(this.width(), this.height());
+		for( y=this.height()-1; y>=0; y-- ) {
+		for( x=this.width()-1; x>=0; x-- ) {
 			var dx = x-cx;
 			var dy = y-cy;
 			this.cache.pf.setEl( x, y, (dx*dx + dy*dy)/(this.width()+this.height()) );
@@ -311,18 +311,18 @@ WordCloud.prototype.redraw = function() {
 
 			var factor = 2;
 			var border = 5;
-			var l=-border, t=-border, r=wordObj.width()+1+border, b=wordObj.height()+1+border;
+			var l=-border, t=-border, r=wordObj.width()+border, b=wordObj.height()+border;
 			var d = 1;
 			while(t<=b && l<=r) {
 				// Increment the border at distance d
-				for(var x=l; x<=r; x++) {
+				for(var x=l; x<r; x++) {
 					pf.setEl( wx+x, wy+t,
 						pf.el( wx+x, wy+t ) + factor*d ); // top row
 					if( t != b ) // check that we don't run over the same row twice
 					pf.setEl( wx+x, wy+b,
 						pf.el( wx+x, wy+b ) + factor*d ); // bottom row
 				}
-				for(var y=t+1; y<b; y++) { // Exclude first & last row (already done above)
+				for(var y=t+1; y<b-1; y++) { // Exclude first & last row (already done above)
 					pf.setEl( wx+l, wy+y,
 						pf.el( wx+l, wy+y ) + factor*d ); // left column
 					if( l != r )
@@ -344,11 +344,11 @@ WordCloud.prototype.redraw = function() {
 	
 			// Sense potential {top,bottom,left,right}
 			var pt=0,pb=0,pl=0,pr=0;
-			for( x=wordObj.width()+1; x>=0; x-- ) {
+			for( x=wordObj.width(); x>=0; x-- ) {
 				pt += pf.el( wordObj.x() + x, wordObj.y() );
 				pb += pf.el( wordObj.x() + x, wordObj.y() + wordObj.height()+1 );
 			}
-			for( y=wordObj.height()+1; y>=0; y-- ) {
+			for( y=wordObj.height(); y>=0; y-- ) {
 				pl += pf.el( wordObj.x(), wordObj.y() + y );
 				pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
 			}
