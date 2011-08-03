@@ -1,63 +1,4 @@
-function rect_intersect (ax,ay,aw,ah, bx,by,bw,bh) {
-	/* Do the rectangles A and B intersect?
-	 * Each are specified by their left-top corner {a,b}{x,y}
-	 * and their width and hight {a,b}{w,h} (exclusive)
-	 * This function returns either false if the rectangles
-	 * do not overlap, or a vector [x,y] to move A away from B
-	 */
-	
-	// Make sure {a,b}{w,h} are positive
-	if( aw < 0 ) { ax = ax + aw; aw = -aw; }
-	if( ah < 0 ) { ay = ay + ah; ah = -ah; }
-	if( bw < 0 ) { bx = bx + bw; bw = -bw; }
-	if( bh < 0 ) { by = by + bh; bh = -bh; }
-
-	if( ax+aw <= bx /* A left of B */ ) return false;
-	if( bx+bw <= ax /* A right of B */ ) return false;
-	if( ay+ah <= by /* A above B */ ) return false;
-	if( by+bh <= ay /* A below B */ ) return false;
-
-	// OK, they overlap; Move away in this direction
-	var mv = [ (ax+aw/2) - (bx+bw/2) , (ay+ah/2) - (by+bh/2) ];
-	{
-		var length = Math.sqrt( Math.pow(mv[0],2) + Math.pow(mv[1],2) );
-		mv[0] /= length; mv[1] /= length;
-	}
-
-	{ // Now find the intersection area to scale that vector
-		var ix = Math.max(ax,bx);
-		var iy = Math.max(ay,by);
-		var ix2 = Math.min(ax+aw, bx+bw);
-		var iy2 = Math.min(ay+ah, by+bh);
-		var iw = ix2-ix;
-		var ih = iy2-iy;
-		var area = iw*ih;
-		area /= aw*ah;
-		mv[0] *= area; mv[1] *= area;
-	}
-
-	return mv;
-}
-
 Math.round_toward_zero = function (x) { return (x >= 0 ? Math.floor(x) : Math.ceil(x) ); }
-
-TwoDArray = function(width, height) {
-	this.width = width;
-	this.height = height;
-	this.length = width*height;
-	this.data = new Array(this.length);
-}
-TwoDArray.prototype.el = function(x,y) {
-	return this.data[ y*this.width + x ];
-}
-TwoDArray.prototype.setEl = function(x,y,v) {
-	this.data[ y*this.width + x ] = v;
-}
-TwoDArray.prototype.clone = function() {
-	var clone = new TwoDArray(this.width, this.height);
-	clone.data = this.data.slice();
-	return clone;
-}
 
 WordCloudAnchor = function(jqelement) {
 	this.jqe = jqelement;
@@ -83,15 +24,15 @@ WordCloudAnchor.prototype.conePotentialField = function () {
 		var cx = this.width()/2;
 		var cy = this.height()/2;
 
-		this.cache.pf = new TwoDArray(this.width()+1, this.height()+1);
-		for( y=this.height(); y>=0; y-- ) {
-		for( x=this.width(); x>=0; x-- ) {
+		this.cache.pf = new Array( this.width() * this.height() );
+		for( y=this.height()-1; y>=0; y-- ) {
+		for( x=this.width()-1; x>=0; x-- ) {
 			var dx = x-cx;
 			var dy = y-cy;
-			this.cache.pf.setEl( x, y, (dx*dx + dy*dy)/(this.width()+this.height()) );
+			this.cache.pf[ y*this.width() + x ] = (dx*dx + dy*dy)/(this.width()+this.height());
 		}}
 	}
-	return this.cache.pf.clone();
+	return this.cache.pf.slice(); // Copy the array
 }
 
 WordCloudItem = function(jqelement, anchor) {
@@ -297,67 +238,82 @@ WordCloud.prototype.redraw = function() {
 
 	var that = this; // Prepare closure
 
-	// Create potentialField
-	function calcPF() {
-		var pf = that.anchor.conePotentialField();
+	var pf; // Use direct array access; using an object for abstraction causes performance issues...
+	var pfw = that.anchor.width(); // potential field width
+	{ // Create potentialField
+		pf = that.anchor.conePotentialField();
 		//var pf = this.anchor.conePotentialField();
 		for( var word in that.words) {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
 
-			var factor = 2;
-			var border = 5;
-			var l=-border, t=-border, r=wordObj.width()+1+border, b=wordObj.height()+1+border;
-			var d = 1;
+			var factor = 2; // Steepness of the potential
+			var border = 5; // border pixels to include
+
+			// This ruins the caching abstraction layer
+			// But gives a performance boost
+			var wx=wordObj.x(), wy=wordObj.y(),
+			    ww=wordObj.width(), wh=wordObj.height();
+
+			var l = wx - border,
+			    t = wy - border,
+			    r = wx + ww + border,
+			    b = wy + wh + border;
+			if( l < 0 ) l = 0;
+			if( t < 0 ) t = 0;
+			if( r > that.anchor.width() ) r = that.anchor.width();
+			if( b > that.anchor.height() ) b = that.anchor.height();
+
+			var d = 1; // How far are we from the border (i.e. how high is the potential)
 			while(t<=b && l<=r) {
-				// Increment the border at distance d
-				for(var x=l; x<=r; x++) {
-					pf.setEl( wordObj.x()+x, wordObj.y()+t,
-						pf.el( wordObj.x()+x, wordObj.y()+t ) + factor*d ); // top row
+				// Iterate over the full area, starting with the outer border
+				// and working our way inwards
+				for(var x=l; x<r; x++) {
+					pf[ t*pfw + x ] += factor*d; // top row
 					if( t != b ) // check that we don't run over the same row twice
-					pf.setEl( wordObj.x()+x, wordObj.y()+b,
-						pf.el( wordObj.x()+x, wordObj.y()+b ) + factor*d ); // bottom row
+						pf[ b*pfw + x ] += factor*d; // bottom row
 				}
-				for(var y=t+1; y<b; y++) { // Exclude first & last row (already done above)
-					pf.setEl( wordObj.x()+l, wordObj.y()+y,
-						pf.el( wordObj.x()+l, wordObj.y()+y ) + factor*d ); // left column
+				for(var y=t+1; y<b-1; y++) { // Exclude first & last row (already done above)
+					pf[ y*pfw + l ] += factor*d; // left column
 					if( l != r )
-					pf.setEl( wordObj.x()+r, wordObj.y()+y,
-						pf.el( wordObj.x()+r, wordObj.y()+y ) + factor*d ); // right column
+						pf[ y*pfw + r ] += factor*d; // right column
 				}
 				l++; r--; t++; b--; // Shrink box by 1 pixel
 				d++; // increment distance
 			}
 		}
-		return pf;
 	};
-	var pf = calcPF();
 
-	function applyPF() { // Apply potfield
+	{ // Apply potfield
 		for( var word in that.words ) {
 			var wordObj = that.words[ word ];
 			if( ! wordObj.attached() ) continue;
-	
+
+			// This ruins the caching abstraction layer
+			// But gives a performance boost
+			var wx=wordObj.x(), wy=wordObj.y(),
+			    ww=wordObj.width(), wh=wordObj.height();
+
 			// Sense potential {top,bottom,left,right}
 			var pt=0,pb=0,pl=0,pr=0;
-			for( x=wordObj.width()+1; x>=0; x-- ) {
-				pt += pf.el( wordObj.x() + x, wordObj.y() );
-				pb += pf.el( wordObj.x() + x, wordObj.y() + wordObj.height()+1 );
+			for( x=ww; x>=0; x-- ) {
+				pt += pf[ (wy)*pfw + wx + x ];
+				pb += pf[ (wy + wh)*pfw + wx + x ];
 			}
-			for( y=wordObj.height()+1; y>=0; y-- ) {
-				pl += pf.el( wordObj.x(), wordObj.y() + y );
-				pr += pf.el( wordObj.x() + wordObj.width()+1, wordObj.y() + y );
+			for( y=wh; y>=0; y-- ) {
+				pl += pf[ (wy + y)*pfw + wx ];
+				pr += pf[ (wy + y)*pfw + wx + ww ];
 			}
 	
-			var mvx = (pl - pr) / (wordObj.height()*wordObj.width()) * 2;
-			var mvy = (pt - pb) / (wordObj.width()*wordObj.height()) * 2;
+			var area = ww*wh;
+			var mvx = (pl - pr) / area * 2;
+			var mvy = (pt - pb) / area * 2;
 	
 			wordObj.moveRel( mvx, mvy );
 		}
-	};
-	applyPF();
+	}
 
-	function calcFeedback() { // Feedback loops
+	{ // Feedback loops
 		// Fill
 		var filled = 0;
 		for( var word in that.words ) {
@@ -395,22 +351,21 @@ WordCloud.prototype.redraw = function() {
 			}
 		}
 	}
-	calcFeedback();
 };
 
 function DEBUG_display_pf(pf) {
 	var debug_ctx = $("#debug")[0].getContext("2d");
-	var image = debug_ctx.createImageData( pf.width, pf.height );
+	var image = debug_ctx.createImageData( $("#debug").width(), $("#debug").height() );
 
-	var min=pf.data[0], max=pf.data[0];
+	var min=pf[0], max=pf[0];
 	for( var i=0; i < pf.length; i++ ) {
-		if( pf.data[i] < min ) min = pf.data[i];
-		if( pf.data[i] > max ) max = pf.data[i];
+		if( pf[i] < min ) min = pf[i];
+		if( pf[i] > max ) max = pf[i];
 	}
 	for( var i=0; i < pf.length; i++ ) {
-		image.data[ i*4 + 0 ] = (pf.data[i] - min)*255/(max-min); // R
-		image.data[ i*4 + 1 ] = (pf.data[i] - min)*255/(max-min); // G
-		image.data[ i*4 + 2 ] = (pf.data[i] - min)*255/(max-min); // B
+		image.data[ i*4 + 0 ] = (pf[i] - min)*255/(max-min); // R
+		image.data[ i*4 + 1 ] = (pf[i] - min)*255/(max-min); // G
+		image.data[ i*4 + 2 ] = (pf[i] - min)*255/(max-min); // B
 		image.data[ i*4 + 3 ] = 255; // A
 	}
 
