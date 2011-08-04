@@ -253,7 +253,7 @@ WordCloud.prototype.redraw = function() {
 			// This ruins the caching abstraction layer
 			// But gives a performance boost
 			var wx=wordObj.x(), wy=wordObj.y(),
-			    ww=wordObj.width(), wh=wordObj.height();
+			    ww=Math.ceil(wordObj.width()), wh=Math.ceil(wordObj.height());
 
 			var l = wx - border,
 			    t = wy - border,
@@ -292,7 +292,7 @@ WordCloud.prototype.redraw = function() {
 			// This ruins the caching abstraction layer
 			// But gives a performance boost
 			var wx=wordObj.x(), wy=wordObj.y(),
-			    ww=wordObj.width(), wh=wordObj.height();
+			    ww=Math.ceil(wordObj.width()), wh=Math.ceil(wordObj.height());
 
 			// Sense potential {top,bottom,left,right}
 			var pt=0,pb=0,pl=0,pr=0;
