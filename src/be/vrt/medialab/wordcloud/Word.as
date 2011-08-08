@@ -19,9 +19,10 @@ package be.vrt.medialab.wordcloud
 	{
 		public var value:String;
 		public var size:Number;
+		public var color:uint;
 		
 		public var label:TextField;
-		public var color:uint;
+		public var body:b2Body;
 		
 		
 		public function Word(value:String, size:Number=1.0)
@@ -33,7 +34,10 @@ package be.vrt.medialab.wordcloud
 			
 			this.color = WordCloud.COLORS[ Math.floor( Math.random() * WordCloud.COLORS.length) ];
 			
-			
+			createTextfield();
+		}
+		
+		protected function createTextfield():void {
 			var fontEmbed:Font = new Kenyan();
 			var format:TextFormat = new TextFormat();
 			format.size = size;
@@ -47,8 +51,8 @@ package be.vrt.medialab.wordcloud
 			label.defaultTextFormat = format;
 			label.text = value;
 			label.border = false;
-
-			addChild(label);
+			
+			addChild(label);	
 		}
 		
 		public function createShape():b2PolygonDef {
@@ -67,6 +71,26 @@ package be.vrt.medialab.wordcloud
 			shapeDef.friction = 0.3;
 			
 			return shapeDef;
+		}
+		
+		public function linkToBody(body:b2Body) {
+			this.body = body;
+		}
+		
+		public function updateSize(newSize:Number):void {
+			newSize = Math.max(10, Math.min(newSize, 90));
+			size = newSize;
+
+			updateShape();
+		}
+		
+		public function updateShape():void {
+			removeChild(label);
+			body.DestroyShape( body.GetShapeList() );
+			
+			createTextfield();
+			body.CreateShape( this.createShape() );
+			body.SetMassFromShapes();
 		}
 	}
 }

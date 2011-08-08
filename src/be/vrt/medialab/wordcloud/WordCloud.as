@@ -9,6 +9,8 @@ package be.vrt.medialab.wordcloud
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.TimerEvent;
+	import flash.utils.setInterval;
 	
 	public class WordCloud extends MovieClip
 	{
@@ -21,7 +23,12 @@ package be.vrt.medialab.wordcloud
 		public var timeStep:Number = 1.0 / 60.0;
 		public var iterations:Number = 10;
 		
+		public static const WORLD_WIDTH:Number = 22.6;
+		public static const WORLD_HEIGHT:Number = 13.2;
+		
+		
 		public static const DEBUG:Boolean = false;
+		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
 		
@@ -42,6 +49,8 @@ package be.vrt.medialab.wordcloud
 			createWords();
 			
 			addEventListener(Event.ENTER_FRAME, update, false, 0, true);
+			
+			setInterval( randomGrow, 100 );
 		}
 		
 		
@@ -50,12 +59,17 @@ package be.vrt.medialab.wordcloud
 			
 			words = new Array();
 			
-			var list:Array = lorem.split(" ");			
-			var size:Number = 90;
+			var list:Array = lorem.split(" ");	
+			
+			var big:Boolean;
+			var size:Number;
+			
 			for each (var w:String in list) 
 			{
+				big = (Math.random() * 6) < 1;
+				size = big ? Math.max( 10, Math.random() * 90) : 10;
+				
 				words.push( new Word(w, size) );
-				size = Math.max( 10, size - 5 );
 			}
 		}
 		
@@ -64,7 +78,7 @@ package be.vrt.medialab.wordcloud
 			worldAABB.lowerBound.Set(-100.0, -100.0);
 			worldAABB.upperBound.Set(100.0, 100.0);
 			
-			var gravity:b2Vec2 = new b2Vec2 (0.0, 10.0);
+			var gravity:b2Vec2 = new b2Vec2 (0.0, GRAVITY ? 10.0 : 0.0);
 			var doSleep:Boolean = true;
 			world = new b2World(worldAABB, gravity, doSleep);
 			
@@ -73,7 +87,7 @@ package be.vrt.medialab.wordcloud
 		
 		public function createBorders():void {
 			var groundBodyDef:b2BodyDef = new b2BodyDef();
-			groundBodyDef.position.Set(0.0, 13.0);
+			groundBodyDef.position.Set(0.0, 13.2);
 			var groundBody:b2Body = world.CreateBody(groundBodyDef);
 			
 			var groundShapeDef:b2PolygonDef = new b2PolygonDef();
@@ -91,12 +105,21 @@ package be.vrt.medialab.wordcloud
 	
 			
 			var rightBodyDef:b2BodyDef = new b2BodyDef();
-			rightBodyDef.position.Set(22.5, 13.0);
+			rightBodyDef.position.Set(22.6, 13.2);
 			var rightBody:b2Body = world.CreateBody(rightBodyDef);
 			
 			var rightShapeDef:b2PolygonDef = new b2PolygonDef();
 			rightShapeDef.SetAsBox(0.1, 50);
-			rightBody.CreateShape(rightShapeDef);	
+			rightBody.CreateShape(rightShapeDef);
+			
+			
+			var topBodyDef:b2BodyDef = new b2BodyDef();
+			topBodyDef.position.Set(0.0, 0.0);
+			var topBody:b2Body = world.CreateBody(topBodyDef);
+			
+			var topShapeDef:b2PolygonDef = new b2PolygonDef();
+			topShapeDef.SetAsBox(50.0, 0.1);
+			topBody.CreateShape(topShapeDef);	
 		}
 		
 		public function createWords():void {
@@ -104,14 +127,17 @@ package be.vrt.medialab.wordcloud
 			for each (var w:Word in words) 
 			{
 				var bodyDef:b2BodyDef = new b2BodyDef();
-				bodyDef.position.Set( Math.random() * 15 , Math.random() * 5 );
+				bodyDef.position.Set( WORLD_WIDTH/2 -7.5 + Math.random() * 15 , WORLD_HEIGHT/2 - 0.5 + Math.random() * 1 );
+				bodyDef.fixedRotation = true;
 				bodyDef.userData = w;
 				
 				var body:b2Body = world.CreateBody(bodyDef);
 				
 				body.CreateShape( w.createShape() );
 				body.SetMassFromShapes();
-								
+				
+				w.linkToBody(body);
+				
 				renderSprite.addChild(w);
 			}
 			
@@ -130,13 +156,22 @@ package be.vrt.medialab.wordcloud
 
 					w.x = bb.GetPosition().x * SCALE;
 					w.y = bb.GetPosition().y * SCALE;
-					w.rotation = bb.GetAngle() * radFactor;
-					
-					//bb.m_userData.x = bb.GetPosition().x * physScale;
-					//bb.m_userData.y = bb.GetPosition().y * physScale;
-					//bb.m_userData.rotation = bb.GetAngle() * (180/Math.PI);
+					//w.rotation = bb.GetAngle() * radFactor;
 				}
 			}
+		}
+		
+		public function randomGrow():void {
+			
+			var index:int = Math.floor( Math.random() * words.length );
+			var w:Word = words[index] as Word;
+			var diff:Number = -20 + Math.random()*40;
+			w.updateSize( w.size + diff  );
+			
+			
+			index = Math.floor( Math.random() * words.length );
+			w = words[index] as Word;
+			w.updateSize( w.size - diff  );
 		}
 		
 		public function enableDebugging():void {			
