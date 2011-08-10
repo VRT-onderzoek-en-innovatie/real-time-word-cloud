@@ -10,6 +10,8 @@ package be.vrt.medialab.wordcloud
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.TimerEvent;
+	import flash.external.ExternalInterface;
+	import flash.system.Security;
 	import flash.utils.setInterval;
 	
 	public class WordCloud extends MovieClip
@@ -19,6 +21,7 @@ package be.vrt.medialab.wordcloud
 		public var renderSprite:Sprite; 
 		
 		public var words:Array;
+		public var words_list:Array;
 		
 		public var timeStep:Number = 1.0 / 60.0;
 		public var iterations:Number = 10;
@@ -30,6 +33,7 @@ package be.vrt.medialab.wordcloud
 		public static const DEBUG:Boolean = false;
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
+		public static const FONTSIZE_MULTIPLIER:Number = 20;
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
 		
 		public function WordCloud()
@@ -42,22 +46,28 @@ package be.vrt.medialab.wordcloud
 			renderSprite = new Sprite();
 			addChild(renderSprite);
 			
-			
-			initWords();
 			createBox2DWorld();
 			createBorders();
-			createWords();
+			
+			words = new Array();
+			words_list = new Array();
+			
+			//initFakeWords();
+			//setInterval( randomGrow, 100 );
+						
+			if ( ExternalInterface.available ) {
+				ExternalInterface.addCallback("fl_updateWord", fl_updateWord);
+			}
 			
 			addEventListener(Event.ENTER_FRAME, update, false, 0, true);
-			
-			setInterval( randomGrow, 100 );
 		}
 		
 		
-		public function initWords():void {
+		public function initFakeWords():void {
 			var lorem:String = "Lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum";
 			
 			words = new Array();
+			words_list = new Array();
 			
 			var list:Array = lorem.split(" ");	
 			
@@ -69,8 +79,15 @@ package be.vrt.medialab.wordcloud
 				big = (Math.random() * 6) < 1;
 				size = big ? Math.max( 10, Math.random() * 90) : 10;
 				
-				words.push( new Word(w, size) );
+				newWord(w, size);
 			}
+		}
+		
+		public function newWord(word:String, size:Number) {
+			var w:Word = new Word(word, size);
+			createWord(w);
+			words.push(w);
+			words_list.push(word);
 		}
 		
 		public function createBox2DWorld():void {
@@ -122,26 +139,20 @@ package be.vrt.medialab.wordcloud
 			topBody.CreateShape(topShapeDef);	
 		}
 		
-		public function createWords():void {
+		public function createWord(w:Word):void {
+			var bodyDef:b2BodyDef = new b2BodyDef();
+			bodyDef.position.Set( WORLD_WIDTH/2 -7.5 + Math.random() * 15 , WORLD_HEIGHT/2 - 0.5 + Math.random() * 1 );
+			bodyDef.fixedRotation = true;
+			bodyDef.userData = w;
 			
-			for each (var w:Word in words) 
-			{
-				var bodyDef:b2BodyDef = new b2BodyDef();
-				bodyDef.position.Set( WORLD_WIDTH/2 -7.5 + Math.random() * 15 , WORLD_HEIGHT/2 - 0.5 + Math.random() * 1 );
-				bodyDef.fixedRotation = true;
-				bodyDef.userData = w;
-				
-				var body:b2Body = world.CreateBody(bodyDef);
-				
-				body.CreateShape( w.createShape() );
-				body.SetMassFromShapes();
-				
-				w.linkToBody(body);
-				
-				renderSprite.addChild(w);
-			}
+			var body:b2Body = world.CreateBody(bodyDef);
 			
-
+			body.CreateShape( w.createShape() );
+			body.SetMassFromShapes();
+			
+			w.linkToBody(body);
+			
+			renderSprite.addChild(w);
 		}
 		
 		public function update(e:Event):void {
@@ -163,15 +174,40 @@ package be.vrt.medialab.wordcloud
 		
 		public function randomGrow():void {
 			
-			var index:int = Math.floor( Math.random() * words.length );
-			var w:Word = words[index] as Word;
-			var diff:Number = -20 + Math.random()*40;
-			w.updateSize( w.size + diff  );
+			if ( words.length > 0 ) {
 			
+				var index:int = Math.floor( Math.random() * words.length );
+				var w:Word = words[index] as Word;
+				var diff:Number = -20 + Math.random()*40;
+				w.updateSize( w.size + diff  );
+				
+				
+				index = Math.floor( Math.random() * words.length );
+				w = words[index] as Word;
+				w.updateSize( w.size - diff  );
+			}
+		}
 			
-			index = Math.floor( Math.random() * words.length );
-			w = words[index] as Word;
-			w.updateSize( w.size - diff  );
+		public function fl_updateWord(word:String, count:Number){
+			var size:Number = count * FONTSIZE_MULTIPLIER;
+			var index = wordExists(word);
+			
+			if( index !== false ) {
+				var w:Word = words[index];
+				w.updateSize( size  );
+			} else {
+				newWord(word, size);
+			}
+		}
+		
+		public function fl_removeWord(word){
+			
+		}
+		
+		public function wordExists(word:String):* {
+			var exists:Number = words_list.indexOf(word);
+			if ( exists == -1 ) return false;
+			return exists;
 		}
 		
 		public function enableDebugging():void {			
