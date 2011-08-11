@@ -8,6 +8,10 @@ package be.vrt.medialab.wordcloud
 	import Box2D.Dynamics.Joints.b2DistanceJoint;
 	import Box2D.Dynamics.Joints.b2DistanceJointDef;
 	
+	import com.greensock.TweenLite;
+	import com.greensock.easing.Elastic;
+	import com.greensock.easing.Strong;
+	
 	import flash.display.Sprite;
 	import flash.text.AntiAliasType;
 	import flash.text.Font;
@@ -25,6 +29,7 @@ package be.vrt.medialab.wordcloud
 		public var color:uint;
 		public var active:Boolean;
 		
+		public var wrapper:Sprite;
 		public var label:TextField;
 		public var body:b2Body;
 		public var world:b2World;
@@ -33,6 +38,8 @@ package be.vrt.medialab.wordcloud
 		public static const MAX_SIZE:Number = 70;
 		public static const MID_SIZE:Number = 15;
 		public static const MIN_SIZE:Number = 10;
+
+		public static const BASE_FONTSIZE = 10;
 		
 		public function Word(value:String, world:b2World)
 		{
@@ -51,7 +58,7 @@ package be.vrt.medialab.wordcloud
 		protected function calculateSize():Number {
 			// linear mapping
 			
-			if ( count == 1 ) return MIN_SIZE;
+			if ( count == 1 ) return MIN_SIZE / BASE_FONTSIZE;
 			
 			var m:Number;
 			var linear:Number;
@@ -59,11 +66,11 @@ package be.vrt.medialab.wordcloud
 			if ( count < WordCloud.countMID ) {
 				m = (MID_SIZE-MIN_SIZE) / (WordCloud.countMID-WordCloud.countMIN);	
 				linear = m * ( count - WordCloud.countMIN) + MIN_SIZE;
-				return Math.max( MIN_SIZE, linear );
+				return Math.max( MIN_SIZE, linear ) / BASE_FONTSIZE;
 			} else {
 				m = (MAX_SIZE-MID_SIZE) / (WordCloud.countMAX-WordCloud.countMID);
 				linear = m * ( count - WordCloud.countMID) + MID_SIZE;
-				return Math.min( linear, MAX_SIZE );
+				return Math.min( linear, MAX_SIZE ) / BASE_FONTSIZE;
 			}
 			
 		}
@@ -105,7 +112,7 @@ package be.vrt.medialab.wordcloud
 		protected function createTextfield():void {
 			var fontEmbed:Font = new Kenyan();
 			var format:TextFormat = new TextFormat();
-			format.size = size;
+			format.size = BASE_FONTSIZE;
 			format.color = color;
 			format.font = fontEmbed.fontName;
 			format.align = TextAlign.CENTER;
@@ -118,7 +125,13 @@ package be.vrt.medialab.wordcloud
 			label.border = false;
 			label.selectable = false;
 			
-			addChild(label);	
+			label.x = - label.width / 2;
+			label.y = - label.height / 2;
+			
+			wrapper = new Sprite();
+			wrapper.scaleX = wrapper.scaleY = size;
+			wrapper.addChild(label);	
+			addChild(wrapper);
 		}
 		
 		public function createShape():b2PolygonDef {
@@ -126,11 +139,8 @@ package be.vrt.medialab.wordcloud
 			
 			var zoom = WordCloud.SCALE;
 			
-			var w:Number = label.width / 2 /zoom;
-			var h:Number = label.height * 0.8 / 2 / zoom;
-			
-			label.x = - label.width / 2;
-			label.y = - label.height / 2;
+			var w:Number = wrapper.width * 0.9 / 2 /zoom;
+			var h:Number = wrapper.height * 0.65 / 2 / zoom;
 			
 			shapeDef.SetAsBox(w, h);
 			shapeDef.density = 1.0;
@@ -150,15 +160,20 @@ package be.vrt.medialab.wordcloud
 			//trace( value + ".updateShape()");
 			
 			try {
-			removeChild(label);
-			label = null;
 			body.DestroyShape( body.GetShapeList() );
 			
+			var oldSize = wrapper.scaleX;
+			
 			size = calculateSize();
-			createTextfield();
+			wrapper.scaleX = wrapper.scaleY = size;
 			
 			body.CreateShape( createShape() );
 			body.SetMassFromShapes();
+			
+			wrapper.scaleX = wrapper.scaleY = oldSize;
+			TweenLite.to(wrapper, 2.0, {scaleX:size, scaleY:size, ease:Strong.easeOut});
+			
+			
 			} catch (e:Error) {
 				trace( e.message );
 			}
@@ -181,7 +196,9 @@ package be.vrt.medialab.wordcloud
 			if ( active ) {
 				try {
 				WordCloud._renderSprite.removeChild(this);
-				removeChild(label);
+				wrapper.removeChild(label);
+				removeChild(wrapper);
+				wrapper = null;
 				label = null;
 				body.DestroyShape( body.GetShapeList() );
 				world.DestroyBody(body);

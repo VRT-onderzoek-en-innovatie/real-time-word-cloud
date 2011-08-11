@@ -6,6 +6,9 @@ package be.vrt.medialab.wordcloud
 	import Box2D.Common.Math.*;
 	import Box2D.Dynamics.*;
 	
+	import com.greensock.easing.FastEase;
+	import com.greensock.easing.Strong;
+	
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.events.Event;
@@ -15,6 +18,7 @@ package be.vrt.medialab.wordcloud
 	import flash.system.Security;
 	import flash.text.TextField;
 	import flash.text.engine.EastAsianJustifier;
+	import flash.utils.clearTimeout;
 	import flash.utils.setInterval;
 	import flash.utils.setTimeout;
 	
@@ -29,6 +33,8 @@ package be.vrt.medialab.wordcloud
 		public var words:Array;
 		public var words_index:Array;
 		public var ordered_index;
+		
+		public var sleepTimer:uint;
 		
 		public var timeStep:Number = 1.0 / 60.0;
 		public var iterations:Number = 10;
@@ -54,6 +60,8 @@ package be.vrt.medialab.wordcloud
 		public function WordCloud()
 		{
 			super();
+			
+			FastEase.activate([Strong]);
 			
 			debugSprite = new Sprite();
 			addChild(debugSprite);
@@ -86,11 +94,8 @@ package be.vrt.medialab.wordcloud
 			//initFakeWords();
 			
 			if ( ExternalInterface.available ) {
-				//ExternalInterface.addCallback("fl_updateWord", fl_updateWord);
 				ExternalInterface.addCallback("fl_newMessage", newMessage);
 			}
-			
-			addEventListener(Event.ENTER_FRAME, update, false, 0, true);
 			
 			renderSprite.addEventListener(MouseEvent.CLICK, onClick);
 		}
@@ -108,11 +113,11 @@ package be.vrt.medialab.wordcloud
 			setTimeout( function(){newMessage("mollit")}, 16000 );
 			setTimeout( function(){newMessage("mollit")}, 17000 );
 			setTimeout( function(){newMessage("mollit")}, 18000 );
-			setTimeout( function(){newMessage("mollit")}, 19000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 20000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 21000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 22000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 23000 );
+			setTimeout( function(){newMessage("mollit")}, 29000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 30000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 31000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 32000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 33000 );
 		}
 		
 		public function newMessage(message:String):void {
@@ -129,6 +134,10 @@ package be.vrt.medialab.wordcloud
 			sortWords();
 			cleanUp();
 			updateList();
+			
+			addEventListener(Event.ENTER_FRAME, update, false, 0, true);
+			clearTimeout( sleepTimer );
+			sleepTimer = setTimeout( sleep, 3000 );
 		}
 		
 		public function newWord(word:String):void {
@@ -179,7 +188,7 @@ package be.vrt.medialab.wordcloud
 			output += "RANGE: " + countMIN + " " + countMID + " " + countMAX + "\r";
 			
 			for each( var index:int in ordered_index ) {
-				output += "\r" + (words[index] as Word).value + "\t\t" + (words[index] as Word).count + "\t" + ( (words[index] as Word).active ? 1 : 0 );
+				output += "\r" + (words[index] as Word).value + "\t\t" + (words[index] as Word).count + "\t" + ( (words[index] as Word).active ? "*" : "" );
 			}
 			_list.text = output;
 		}
@@ -335,6 +344,12 @@ package be.vrt.medialab.wordcloud
 			return a.filter(function(e, i, a) {
 				return a.indexOf(e) == i;
 			}, this);
+		}
+		
+		public function sleep():void {
+			removeEventListener(Event.ENTER_FRAME, update, false);
+			
+			_list.text = "SLEEPING... zZzZzZz   " + _list.text;
 		}
 		
 		public function enableDebugging():void {			
