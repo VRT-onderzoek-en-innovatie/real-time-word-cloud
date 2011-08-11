@@ -21,6 +21,7 @@ package be.vrt.medialab.wordcloud
 	public class WordCloud extends MovieClip
 	{
 		public var world:b2World;
+		public var center:b2Body;
 		public var debugSprite:Sprite;
 		public var renderSprite:MovieClip; 
 		public var _list:TextField;
@@ -32,10 +33,12 @@ package be.vrt.medialab.wordcloud
 		public var timeStep:Number = 1.0 / 60.0;
 		public var iterations:Number = 10;
 		
+		public static var _center:b2Body;
 		public static var _renderSprite:MovieClip;
 		public static var countMIN:Number = 1;
 		public static var countMID:Number = 1;
 		public static var countMAX:Number = 1;
+		public static var stopWords:Array;
 		
 		
 		public static const WORLD_WIDTH:Number = 22.6;
@@ -46,6 +49,7 @@ package be.vrt.medialab.wordcloud
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
 		public static const MAX_WORDS_DISPLAYED:Number = 30;
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
+		public static const STOPWORDS_INPUT:String = "#villav #villavanthilt aan al alles als altijd andere ben bij daar dan dat de der deze die dit doch doen door dus een eens en er ge geen geweest haar had heb hebben heeft hem het hier hij hoe hun iemand iets ik in is ja je kan kon kunnen maar me meer men met mij mijn moet na naar niet niets nog nu of om omdat onder ons ook op over reeds te tegen toch toen tot u uit uw van veel voor want waren was wat we werd wezen wie wij wil worden wordt z'n zal ze zelf zich zij zijn zo zo'n zonder zou zo'n z'n";
 		
 		public function WordCloud()
 		{
@@ -77,26 +81,9 @@ package be.vrt.medialab.wordcloud
 			words = new Array();
 			words_index = new Array();
 			
-			/*
-			var lorem:String = "Lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum";
-			newMessage(lorem);
+			stopWords = STOPWORDS_INPUT.split(" ");
 			
-			setTimeout( function(){newMessage("Lorem ipsum doa eiusmoda tempora incididunta")}, 3000 );
-			setTimeout( function(){newMessage("Lorem ipsum")}, 6000 );
-			setTimeout( function(){newMessage("Lorem")}, 9000 );
-			setTimeout( function(){newMessage("Lorem")}, 12000 );
-			setTimeout( function(){newMessage("Lorem")}, 15000 );
-			setTimeout( function(){newMessage("mollit")}, 16000 );
-			setTimeout( function(){newMessage("mollit")}, 17000 );
-			setTimeout( function(){newMessage("mollit")}, 18000 );
-			setTimeout( function(){newMessage("mollit")}, 19000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 20000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 21000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 22000 );
-			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 23000 );
-			*/
 			//initFakeWords();
-			//setInterval( randomGrow, 400 );
 			
 			if ( ExternalInterface.available ) {
 				//ExternalInterface.addCallback("fl_updateWord", fl_updateWord);
@@ -112,21 +99,20 @@ package be.vrt.medialab.wordcloud
 		public function initFakeWords():void {
 			var lorem:String = "Lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum";
 			
-			words = new Array();
-			words_index = new Array();
-			
-			var list:Array = lorem.split(" ");	
-			
-			var big:Boolean;
-			var size:Number;
-			
-			for each (var w:String in list) 
-			{
-				big = (Math.random() * 6) < 1;
-				size = big ? Math.max( 10, Math.random() * 90) : 10;
-				
-				newWord(w, size);
-			}
+			newMessage(lorem);
+			setTimeout( function(){newMessage("Lorem ipsum doa eiusmoda tempora incididunta")}, 3000 );
+			setTimeout( function(){newMessage("Lorem ipsum")}, 6000 );
+			setTimeout( function(){newMessage("Lorem")}, 9000 );
+			setTimeout( function(){newMessage("Lorem")}, 12000 );
+			setTimeout( function(){newMessage("Lorem")}, 15000 );
+			setTimeout( function(){newMessage("mollit")}, 16000 );
+			setTimeout( function(){newMessage("mollit")}, 17000 );
+			setTimeout( function(){newMessage("mollit")}, 18000 );
+			setTimeout( function(){newMessage("mollit")}, 19000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 20000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 21000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 22000 );
+			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 23000 );
 		}
 		
 		public function newMessage(message:String):void {
@@ -134,8 +120,10 @@ package be.vrt.medialab.wordcloud
 	
 			var a:Array = message.match(pattern);
 			
+			a = removeDuplicates(a);
+			
 			for each (var w:String in a) {
-				newWord(w, 10);
+				newWord(w);
 			}
 			
 			sortWords();
@@ -143,7 +131,11 @@ package be.vrt.medialab.wordcloud
 			updateList();
 		}
 		
-		public function newWord(word:String, size:Number):void {
+		public function newWord(word:String):void {
+			if ( wordInStopWords(word) ) {
+				return;
+			}
+
 			var index = wordExists(word);
 			
 			if ( wordExists(word) !== false ) {
@@ -151,7 +143,7 @@ package be.vrt.medialab.wordcloud
 			} else {
 				var w:Word = new Word(word, world);
 				words.push(w);
-				words_index.push(word);
+				words_index.push(word.toLowerCase());
 			}
 			
 		}
@@ -167,9 +159,7 @@ package be.vrt.medialab.wordcloud
 			for ( var i:int; i<index_length; i++ ) {
 				if ( i < MAX_WORDS_DISPLAYED ) {
 					word = words[ordered_index[i]];
-					if ( ! word.active ) {
-						word.recreate();
-					}
+					word.recreate();
 				}
 				else {
 					if ( word.active ) {
@@ -240,7 +230,18 @@ package be.vrt.medialab.wordcloud
 			
 			var topShapeDef:b2PolygonDef = new b2PolygonDef();
 			topShapeDef.SetAsBox(50.0, 0.1);
-			topBody.CreateShape(topShapeDef);	
+			topBody.CreateShape(topShapeDef);
+			
+			
+			
+			var centerDef:b2BodyDef = new b2BodyDef();
+			centerDef.position.Set(WORLD_WIDTH/2, WORLD_HEIGHT/2);
+			center = world.CreateBody(centerDef);
+			
+			var centerShapeDef:b2PolygonDef = new b2PolygonDef();
+			centerShapeDef.SetAsBox(0.1, 0.1);
+			center.CreateShape(centerShapeDef);
+			_center = center;
 		}
 		
 		/*
@@ -267,13 +268,15 @@ package be.vrt.medialab.wordcloud
 			var w:Word;
 			var radFactor:Number = 180/Math.PI;
 			
-			for (var bb:b2Body = world.m_bodyList; bb; bb = bb.m_next) {
-				if (bb.m_userData is Word) {
-					w = bb.m_userData as Word;
+			for (var b:b2Body = world.m_bodyList; b; b = b.m_next) {
+				if (b.m_userData is Word) {
+					w = b.m_userData as Word;
 
-					w.x = bb.GetPosition().x * SCALE;
-					w.y = bb.GetPosition().y * SCALE;
+					w.x = b.GetPosition().x * SCALE;
+					w.y = b.GetPosition().y * SCALE;
 					//w.rotation = bb.GetAngle() * radFactor;
+					
+					w.createInnerForce();
 				}
 			}
 		}
@@ -319,9 +322,19 @@ package be.vrt.medialab.wordcloud
 		*/
 		
 		public function wordExists(word:String):* {
-			var exists:Number = words_index.indexOf(word);
+			var exists:Number = words_index.indexOf(word.toLowerCase());
 			if ( exists == -1 ) return false;
 			return exists;
+		}
+		
+		public function wordInStopWords(word:String):Boolean {
+			return (stopWords.indexOf(word.toLowerCase()) != -1);
+		}
+		
+		public function removeDuplicates(a:Array):Array {
+			return a.filter(function(e, i, a) {
+				return a.indexOf(e) == i;
+			}, this);
 		}
 		
 		public function enableDebugging():void {			

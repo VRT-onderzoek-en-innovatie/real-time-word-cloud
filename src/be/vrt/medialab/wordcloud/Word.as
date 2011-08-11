@@ -5,6 +5,8 @@ package be.vrt.medialab.wordcloud
 	import Box2D.Common.*;
 	import Box2D.Common.Math.*;
 	import Box2D.Dynamics.*;
+	import Box2D.Dynamics.Joints.b2DistanceJoint;
+	import Box2D.Dynamics.Joints.b2DistanceJointDef;
 	
 	import flash.display.Sprite;
 	import flash.text.AntiAliasType;
@@ -26,6 +28,7 @@ package be.vrt.medialab.wordcloud
 		public var label:TextField;
 		public var body:b2Body;
 		public var world:b2World;
+		public var joint:b2DistanceJoint;
 		
 		public static const MAX_SIZE:Number = 70;
 		public static const MID_SIZE:Number = 15;
@@ -77,8 +80,26 @@ package be.vrt.medialab.wordcloud
 			
 			body.CreateShape( createShape() );
 			body.SetMassFromShapes();
+			
+			//createElasticJoint();
 
+			createInnerForce();
+			
 			WordCloud._renderSprite.addChild(this);
+		}
+		
+		public function createInnerForce():void {
+			var diff:b2Vec2 = new b2Vec2(  	WordCloud._center.GetWorldCenter().x - body.GetWorldCenter().x,
+									 		WordCloud._center.GetWorldCenter().y - body.GetWorldCenter().y );
+			body.ApplyForce( diff, body.GetWorldCenter() );
+		}
+		
+		protected function createElasticJoint():void {
+			var jointDef:b2DistanceJointDef = new b2DistanceJointDef();
+			jointDef.Initialize(body, WordCloud._center, body.GetWorldCenter(), WordCloud._center.GetWorldCenter());
+			jointDef.frequencyHz = 1.5;
+			jointDef.dampingRatio = 1;
+			joint = world.CreateJoint(jointDef) as b2DistanceJoint;
 		}
 		
 		protected function createTextfield():void {
@@ -113,26 +134,27 @@ package be.vrt.medialab.wordcloud
 			
 			shapeDef.SetAsBox(w, h);
 			shapeDef.density = 1.0;
-			shapeDef.friction = 0.3;
+			shapeDef.friction = 1.0;
+			shapeDef.restitution = 0.1;
 			
 			return shapeDef;
 		}
 		
 		public function incrementCount():void {
 			count++
-			size = calculateSize();
-
+			
 			updateShape();
 		}
 		
 		public function updateShape():void {
-			trace( value + ".updateShape()");
+			//trace( value + ".updateShape()");
 			
 			try {
 			removeChild(label);
 			label = null;
 			body.DestroyShape( body.GetShapeList() );
 			
+			size = calculateSize();
 			createTextfield();
 			
 			body.CreateShape( createShape() );
@@ -143,7 +165,7 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function recreate():void {
-			trace( value + ".recreate()");
+			//trace( value + ".recreate()");
 			
 			if ( active ) {
 				updateShape();
@@ -154,7 +176,7 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function destroy():void {
-			trace( value + ".destroy()");
+			//trace( value + ".destroy()");
 
 			if ( active ) {
 				try {
