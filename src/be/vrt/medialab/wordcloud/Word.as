@@ -19,22 +19,66 @@ package be.vrt.medialab.wordcloud
 	{
 		public var value:String;
 		public var size:Number;
+		public var count:Number;
 		public var color:uint;
+		public var active:Boolean;
 		
 		public var label:TextField;
 		public var body:b2Body;
+		public var world:b2World;
 		
+		public static const MAX_SIZE:Number = 70;
+		public static const MID_SIZE:Number = 15;
+		public static const MIN_SIZE:Number = 10;
 		
-		public function Word(value:String, size:Number=1.0)
+		public function Word(value:String, world:b2World)
 		{
 			super();
 			
 			this.value = value;
-			this.size = size;
+			this.world = world;
+			
+			this.count = 1;
+			this.size = calculateSize();
+			this.active = false;
 			
 			this.color = WordCloud.COLORS[ Math.floor( Math.random() * WordCloud.COLORS.length) ];
+		}
+		
+		protected function calculateSize():Number {
+			// linear mapping
 			
+			if ( count == 1 ) return MIN_SIZE;
+			
+			var m:Number;
+			var linear:Number;
+			
+			if ( count < WordCloud.countMID ) {
+				m = (MID_SIZE-MIN_SIZE) / (WordCloud.countMID-WordCloud.countMIN);	
+				linear = m * ( count - WordCloud.countMIN) + MIN_SIZE;
+				return Math.max( MIN_SIZE, linear );
+			} else {
+				m = (MAX_SIZE-MID_SIZE) / (WordCloud.countMAX-WordCloud.countMID);
+				linear = m * ( count - WordCloud.countMID) + MID_SIZE;
+				return Math.min( linear, MAX_SIZE );
+			}
+			
+		}
+		
+		protected function create():void {
 			createTextfield();
+			
+			var bodyDef:b2BodyDef = new b2BodyDef();
+			bodyDef.position.Set( WordCloud.WORLD_WIDTH/2 -7.5 + Math.random() * 15 , WordCloud.WORLD_HEIGHT/2 - 0.5 + Math.random() * 1 );
+			bodyDef.fixedRotation = true;
+			bodyDef.userData = this;
+			
+			body = world.CreateBody(bodyDef);
+			
+			body.CreateShape( createShape() );
+			body.SetMassFromShapes();
+
+			WordCloud._renderSprite.addChild(this);
 		}
 		
 		protected function createTextfield():void {
@@ -51,6 +95,7 @@ package be.vrt.medialab.wordcloud
 			label.defaultTextFormat = format;
 			label.text = value;
 			label.border = false;
+			label.selectable = false;
 			
 			addChild(label);	
 		}
@@ -73,24 +118,58 @@ package be.vrt.medialab.wordcloud
 			return shapeDef;
 		}
 		
-		public function linkToBody(body:b2Body) {
-			this.body = body;
-		}
-		
-		public function updateSize(newSize:Number):void {
-			newSize = Math.max(10, Math.min(newSize, 90));
-			size = newSize;
+		public function incrementCount():void {
+			count++
+			size = calculateSize();
 
 			updateShape();
 		}
 		
 		public function updateShape():void {
+			trace( value + ".updateShape()");
+			
+			try {
 			removeChild(label);
+			label = null;
 			body.DestroyShape( body.GetShapeList() );
 			
 			createTextfield();
-			body.CreateShape( this.createShape() );
+			
+			body.CreateShape( createShape() );
 			body.SetMassFromShapes();
+			} catch (e:Error) {
+				trace( e.message );
+			}
+		}
+		
+		public function recreate():void {
+			trace( value + ".recreate()");
+			
+			if ( active ) {
+				updateShape();
+			} else {
+				create();			
+				active = true;
+			}
+		}
+		
+		public function destroy():void {
+			trace( value + ".destroy()");
+
+			if ( active ) {
+				try {
+				WordCloud._renderSprite.removeChild(this);
+				removeChild(label);
+				label = null;
+				body.DestroyShape( body.GetShapeList() );
+				world.DestroyBody(body);
+				body = null;
+				} catch (e:Error) {
+					trace( e.message );
+				}
+
+				active = false;
+			}
 		}
 	}
 }

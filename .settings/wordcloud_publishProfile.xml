@@ -42,8 +42,8 @@
     <AlternateFilename>wordcloud_alternate.html</AlternateFilename>
     <UsingOwnAlternateFile>0</UsingOwnAlternateFile>
     <OwnAlternateFilename></OwnAlternateFilename>
-    <Width>680</Width>
-    <Height>400</Height>
+    <Width>1000</Width>
+    <Height>800</Height>
     <Align>0</Align>
     <Units>0</Units>
     <Loop>1</Loop>
@@ -72,8 +72,8 @@
     <EventFormat>0</EventFormat>
     <EventCompress>7</EventCompress>
     <OverrideSounds>0</OverrideSounds>
-    <Version>11</Version>
-    <ExternalPlayer>FlashPlayer10.2</ExternalPlayer>
+    <Version>10</Version>
+    <ExternalPlayer>FlashPlayer10</ExternalPlayer>
     <ActionScriptVersion>3</ActionScriptVersion>
     <PackageExportFrame>1</PackageExportFrame>
     <PackagePaths></PackagePaths>
@@ -130,8 +130,8 @@
     </LibraryVersions>
   </PublishFlashProperties>
   <PublishJpegProperties enabled="true">
-    <Width>680</Width>
-    <Height>400</Height>
+    <Width>1000</Width>
+    <Height>800</Height>
     <Progressive>0</Progressive>
     <DPI>4718592</DPI>
     <Size>0</Size>
@@ -156,8 +156,8 @@
     <exportSMIL>1</exportSMIL>
   </PublishRNWKProperties>
   <PublishGifProperties enabled="true">
-    <Width>680</Width>
-    <Height>400</Height>
+    <Width>1000</Width>
+    <Height>800</Height>
     <Animated>0</Animated>
     <MatchMovieDim>1</MatchMovieDim>
     <Loop>1</Loop>
@@ -175,8 +175,8 @@
     <PaletteName></PaletteName>
   </PublishGifProperties>
   <PublishPNGProperties enabled="true">
-    <Width>680</Width>
-    <Height>400</Height>
+    <Width>1000</Width>
+    <Height>800</Height>
     <OptimizeColors>1</OptimizeColors>
     <Interlace>0</Interlace>
     <Transparent>0</Transparent>
@@ -192,8 +192,8 @@
     <PaletteName></PaletteName>
   </PublishPNGProperties>
   <PublishQTProperties enabled="true">
-    <Width>680</Width>
-    <Height>400</Height>
+    <Width>1000</Width>
+    <Height>800</Height>
     <MatchMovieDim>1</MatchMovieDim>
     <UseQTSoundCompression>0</UseQTSoundCompression>
     <AlphaOption></AlphaOption>
