@@ -13,7 +13,7 @@ package com.pnwrain.flashsocket
 
 	public class FlashSocket extends EventDispatcher implements IWebSocketWrapper
 	{
-		protected var debug:Boolean = true;
+		protected var debug:Boolean = false;
 		protected var callerUrl:String;
 		protected var socketURL:String;
 		protected var webSocket:WebSocket;
