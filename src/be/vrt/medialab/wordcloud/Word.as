@@ -37,9 +37,9 @@ package be.vrt.medialab.wordcloud
 		
 		public static const MAX_SIZE:Number = 70;
 		public static const MID_SIZE:Number = 15;
-		public static const MIN_SIZE:Number = 10;
+		public static const MIN_SIZE:Number = 12;
 
-		public static const BASE_FONTSIZE = 10;
+		public static const BASE_FONTSIZE = 12;
 		
 		public function Word(value:String, world:b2World)
 		{
@@ -79,7 +79,7 @@ package be.vrt.medialab.wordcloud
 			createTextfield();
 			
 			var bodyDef:b2BodyDef = new b2BodyDef();
-			bodyDef.position.Set( WordCloud.WORLD_WIDTH/2 -7.5 + Math.random() * 15 , WordCloud.WORLD_HEIGHT/2 - 0.5 + Math.random() * 1 );
+			bodyDef.position.Set( 1 + Math.random() * (WordCloud.WORLD_WIDTH-2) , 1 + Math.random() * (WordCloud.WORLD_HEIGHT-2) );
 			bodyDef.fixedRotation = true;
 			bodyDef.userData = this;
 			

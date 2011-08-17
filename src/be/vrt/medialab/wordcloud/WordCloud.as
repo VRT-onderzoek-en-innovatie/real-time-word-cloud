@@ -29,6 +29,7 @@ package be.vrt.medialab.wordcloud
 		public var debugSprite:Sprite;
 		public var renderSprite:MovieClip; 
 		public var _list:TextField;
+		public var socket:VillasquareSocket;
 		
 		public var words:Array;
 		public var words_index:Array;
@@ -49,7 +50,7 @@ package be.vrt.medialab.wordcloud
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
-		public static const DEBUG:Boolean = false;
+		public static const DEBUG:Boolean = true;
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
@@ -93,6 +94,10 @@ package be.vrt.medialab.wordcloud
 			
 			//initFakeWords();
 			
+			
+			socket = new VillasquareSocket();
+			socket.addEventListener(MessageEvent.MESSAGE, onMessage);
+			
 			if ( ExternalInterface.available ) {
 				ExternalInterface.addCallback("fl_newMessage", newMessage);
 			}
@@ -102,7 +107,7 @@ package be.vrt.medialab.wordcloud
 		
 		
 		public function initFakeWords():void {
-			var lorem:String = "Lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum";
+			var lorem:String = "Lorem ipsum dolor";//sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum";
 			
 			newMessage(lorem);
 			setTimeout( function(){newMessage("Lorem ipsum doa eiusmoda tempora incididunta")}, 3000 );
@@ -119,6 +124,14 @@ package be.vrt.medialab.wordcloud
 			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 32000 );
 			setTimeout( function(){newMessage("labore et dolore magna aliqua")}, 33000 );
 		}
+		
+		protected function onMessage(e:MessageEvent):void {
+			var message:String = e.activity.message;
+			trace( "onMessage: " + message );
+			
+			newMessage(message);
+		}
+		
 		
 		public function newMessage(message:String):void {
 			var pattern:RegExp = new RegExp("http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+", "g");
