@@ -9,6 +9,8 @@ package be.vrt.medialab.wordcloud
 	import com.greensock.easing.FastEase;
 	import com.greensock.easing.Strong;
 	
+	import flash.display.Graphics;
+	import flash.display.LoaderInfo;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.events.Event;
@@ -29,6 +31,7 @@ package be.vrt.medialab.wordcloud
 		public var debugSprite:Sprite;
 		public var renderSprite:MovieClip; 
 		public var _list:TextField;
+		public var _errorLog:TextField;
 		public var socket:VillasquareSocket;
 		
 		public var words:Array;
@@ -47,6 +50,9 @@ package be.vrt.medialab.wordcloud
 		public static var countMAX:Number = 1;
 		public static var stopWords:Array;
 		
+		public static var socket_host = "http://46.137.24.146:80/socket.io/websocket";
+		//public static var socket_host = "http://localhost:9981/socket.io/websocket";
+		//public static var socket_host = "http://10.10.129.144:9981/socket.io/websocket";
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
@@ -62,7 +68,12 @@ package be.vrt.medialab.wordcloud
 		{
 			super();
 			
+			_errorLog = getChildByName('errorLog') as TextField;
+			_list = getChildByName('list') as TextField;
+			
 			FastEase.activate([Strong]);
+			
+			readConfig();
 			
 			debugSprite = new Sprite();
 			addChild(debugSprite);
@@ -72,17 +83,11 @@ package be.vrt.medialab.wordcloud
 			
 			_renderSprite = renderSprite;
 			
-			/*
-			renderSprite.graphics.beginFill(0x000000);
-			renderSprite.graphics.moveTo(0,0);
-			renderSprite.graphics.lineTo(stage.stageWidth, 0);
-			renderSprite.graphics.lineTo(stage.stageWidth, stage.stageHeight);
-			renderSprite.graphics.lineTo(0, stage.stageHeight);
-			renderSprite.graphics.lineTo(0, 0);
-			*/
+			if ( ! DEBUG ) {
+				removeChild(_list);
+				_list = null;
+			}
 			
-			
-			_list = getChildByName('list') as TextField;
 			
 			createBox2DWorld();
 			createBorders();
@@ -95,14 +100,48 @@ package be.vrt.medialab.wordcloud
 			//initFakeWords();
 			
 			
-			socket = new VillasquareSocket();
+			socket = new VillasquareSocket(socket_host);
 			socket.addEventListener(MessageEvent.MESSAGE, onMessage);
 			
 			if ( ExternalInterface.available ) {
 				ExternalInterface.addCallback("fl_newMessage", newMessage);
 			}
 			
-			renderSprite.addEventListener(MouseEvent.CLICK, onClick);
+			//this.addEventListener(Event.ADDED_TO_STAGE, stageReady);
+		}
+		
+		protected function stageReady(e:Event):void {
+			var hitArea:MovieClip = new MovieClip();
+			hitArea.graphics.beginFill(0x000000);
+			hitArea.graphics.moveTo(0,0);
+			hitArea.graphics.lineTo(stage.stageWidth, 0);
+			hitArea.graphics.lineTo(stage.stageWidth, stage.stageHeight);
+			hitArea.graphics.lineTo(0, stage.stageHeight);
+			hitArea.graphics.lineTo(0, 0);
+			this.addChildAt(hitArea, 0);
+			
+			this.addEventListener(MouseEvent.CLICK, onClick);
+		}
+		
+		protected function readConfig():void {
+			try 
+			{
+				var keyStr:String;
+				var valueStr:String;
+				var paramObj:Object = LoaderInfo(this.root.loaderInfo).parameters;
+				for (keyStr in paramObj) 
+				{
+					valueStr = String(paramObj[keyStr]);
+					switch ( keyStr ) {
+						case "host" :
+							socket_host = valueStr;
+							break;
+					}
+				}
+			} 
+			catch (e:Error) {
+				trace(e);
+			}
 		}
 		
 		
@@ -146,7 +185,7 @@ package be.vrt.medialab.wordcloud
 			
 			sortWords();
 			cleanUp();
-			updateList();
+			if ( DEBUG) updateList();
 			
 			addEventListener(Event.ENTER_FRAME, update, false, 0, true);
 			clearTimeout( sleepTimer );
@@ -263,6 +302,7 @@ package be.vrt.medialab.wordcloud
 			var centerShapeDef:b2PolygonDef = new b2PolygonDef();
 			centerShapeDef.SetAsBox(0.1, 0.1);
 			center.CreateShape(centerShapeDef);
+			
 			_center = center;
 		}
 		
@@ -362,7 +402,7 @@ package be.vrt.medialab.wordcloud
 		public function sleep():void {
 			removeEventListener(Event.ENTER_FRAME, update, false);
 			
-			_list.text = "SLEEPING... zZzZzZz   " + _list.text;
+			if ( DEBUG ) _list.text = "SLEEPING... zZzZzZz   " + _list.text;
 		}
 		
 		public function enableDebugging():void {			
@@ -376,12 +416,24 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function onClick(e:MouseEvent):void {
-			for each (var w:Word in words) 
-			{
-				w.destroy();
+			
+			/* not really working :-/ */
+			
+			trace("scatter words");
+			
+			var index_length = ordered_index.length;
+			cleanUp();
+			
+			var word:Word;
+			for ( var i:int; i<index_length; i++ ) {
+				if ( i < MAX_WORDS_DISPLAYED ) {
+					word = words[ordered_index[i]];
+					word.randomPosition();
+				}
 			}
 			
-			initFakeWords();
+			clearTimeout( sleepTimer );
+			sleepTimer = setTimeout( sleep, 5000 );
 		}
 	}
 }
