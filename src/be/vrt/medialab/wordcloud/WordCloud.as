@@ -50,7 +50,7 @@ package be.vrt.medialab.wordcloud
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
-		public static const DEBUG:Boolean = true;
+		public static const DEBUG:Boolean = false;
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;

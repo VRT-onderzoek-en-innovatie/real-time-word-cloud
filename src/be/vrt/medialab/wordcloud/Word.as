@@ -64,15 +64,18 @@ package be.vrt.medialab.wordcloud
 			var linear:Number;
 			
 			if ( count < WordCloud.countMID ) {
+				if ( WordCloud.countMID == WordCloud.countMIN ) return MIN_SIZE / BASE_FONTSIZE;
+				
 				m = (MID_SIZE-MIN_SIZE) / (WordCloud.countMID-WordCloud.countMIN);	
 				linear = m * ( count - WordCloud.countMIN) + MIN_SIZE;
 				return Math.max( MIN_SIZE, linear ) / BASE_FONTSIZE;
 			} else {
+				if ( WordCloud.countMID == WordCloud.countMAX ) return MID_SIZE / BASE_FONTSIZE;
+				
 				m = (MAX_SIZE-MID_SIZE) / (WordCloud.countMAX-WordCloud.countMID);
 				linear = m * ( count - WordCloud.countMID) + MID_SIZE;
 				return Math.min( linear, MAX_SIZE ) / BASE_FONTSIZE;
 			}
-			
 		}
 		
 		protected function create():void {
@@ -173,6 +176,7 @@ package be.vrt.medialab.wordcloud
 			wrapper.scaleX = wrapper.scaleY = oldSize;
 			TweenLite.to(wrapper, 2.0, {scaleX:size, scaleY:size, ease:Strong.easeOut});
 			
+			//trace(" size: " + oldSize + " --> " + size );
 			
 			} catch (e:Error) {
 				trace( e.message );
