@@ -6,10 +6,12 @@ package be.vrt.medialab.wordcloud
 	import Box2D.Common.Math.*;
 	import Box2D.Dynamics.*;
 	
+	import com.adobe.serialization.json.JSON;
 	import com.greensock.easing.FastEase;
 	import com.greensock.easing.Strong;
 	
 	import flash.display.Graphics;
+	import flash.display.Loader;
 	import flash.display.LoaderInfo;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
@@ -17,6 +19,8 @@ package be.vrt.medialab.wordcloud
 	import flash.events.MouseEvent;
 	import flash.events.TimerEvent;
 	import flash.external.ExternalInterface;
+	import flash.net.URLLoader;
+	import flash.net.URLRequest;
 	import flash.system.Security;
 	import flash.text.TextField;
 	import flash.text.engine.EastAsianJustifier;
@@ -33,6 +37,7 @@ package be.vrt.medialab.wordcloud
 		public var _list:TextField;
 		public var _errorLog:TextField;
 		public var socket:VillasquareSocket;
+		public var backlog:Backlog;
 		
 		public var words:Array;
 		public var words_index:Array;
@@ -50,9 +55,11 @@ package be.vrt.medialab.wordcloud
 		public static var countMAX:Number = 1;
 		public static var stopWords:Array;
 		
-		public static var socket_host = "http://46.137.24.146:80/socket.io/websocket";
-		//public static var socket_host = "http://localhost:9981/socket.io/websocket";
+		//public static var socket_host = "http://46.137.24.146:80/socket.io/websocket";
+		public static var socket_host = "http://localhost:9981/socket.io/websocket";
 		//public static var socket_host = "http://10.10.129.144:9981/socket.io/websocket";
+		
+		public static var backlog_host = "http://localhost:3000/activities.json";
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
@@ -60,9 +67,10 @@ package be.vrt.medialab.wordcloud
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
-		public static const MAX_WORDS_DISPLAYED:Number = 30;
+		public static const MAX_WORDS_DISPLAYED:Number = 50;
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
 		public static const STOPWORDS_INPUT:String = "#villav #villavanthilt aan al alles als altijd andere ben bij daar dan dat de der deze die dit doch doen door dus een eens en er ge geen geweest haar had heb hebben heeft hem het hier hij hoe hun iemand iets ik in is ja je kan kon kunnen maar me meer men met mij mijn moet na naar niet niets nog nu of om omdat onder ons ook op over reeds te tegen toch toen tot u uit uw van veel voor want waren was wat we werd wezen wie wij wil worden wordt z'n zal ze zelf zich zij zijn zo zo'n zonder zou zo'n z'n";
+		public static const MESSAGE_TYPES:Array = ["comment","twitter","facebook", "sms"];
 		
 		public function WordCloud()
 		{
@@ -98,7 +106,9 @@ package be.vrt.medialab.wordcloud
 			stopWords = STOPWORDS_INPUT.split(" ");
 			
 			//initFakeWords();
-			
+			backlog = new Backlog( backlog_host );
+			backlog.addEventListener( MessageEvent.MESSAGE, onMessage );
+			backlog.read();
 			
 			socket = new VillasquareSocket(socket_host);
 			socket.addEventListener(MessageEvent.MESSAGE, onMessage);
@@ -165,22 +175,31 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		protected function onMessage(e:MessageEvent):void {
-			var message:String = e.activity.message;
-			trace( "onMessage: " + message );
-			
-			newMessage(message);
+			try {
+				var message:String = e.activity.message;
+				trace( "onMessage: " + message );
+				
+				newMessage(message);
+			} catch (error:Error) {
+				trace( "error on message " + e.activity.message );
+				trace( error );
+			}
 		}
 		
 		
-		public function newMessage(message:String):void {
+		public function newMessage(message:String):void {	
 			var pattern:RegExp = new RegExp("http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+", "g");
 	
 			var a:Array = message.match(pattern);
-			
 			a = removeDuplicates(a);
 			
 			for each (var w:String in a) {
+				try {
+				if ( w.indexOf("http://") != -1 )	continue;
+				if ( w.indexOf("#") == 0 )			continue;
+				
 				newWord(w);
+				} catch (e:Error) {};
 			}
 			
 			sortWords();
@@ -193,7 +212,11 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function newWord(word:String):void {
+			trace(" + " + word );
+			
+			
 			if ( wordInStopWords(word) ) {
+				if ( DEBUG ) trace("dropped: " + word );
 				return;
 			}
 
@@ -214,12 +237,13 @@ package be.vrt.medialab.wordcloud
 			
 			countMAX = (words[ordered_index[0]] as Word).count;
 			countMIN = (words[ordered_index[ Math.min(index_length,MAX_WORDS_DISPLAYED) - 1 ]] as Word).count;
-			countMID = (words[ordered_index[ Math.round(Math.min(index_length- 1,MAX_WORDS_DISPLAYED- 1)/2)  ]] as Word).count;
+			countMID = (words[ordered_index[ Math.round(Math.min(index_length- 1,MAX_WORDS_DISPLAYED- 1)/5)  ]] as Word).count;
 			
 			var word:Word;
-			for ( var i:int; i<index_length; i++ ) {
+			for ( var i:int = 0; i<index_length; i++ ) {
+				word = words[ordered_index[i]];
+				
 				if ( i < MAX_WORDS_DISPLAYED ) {
-					word = words[ordered_index[i]];
 					word.recreate();
 				}
 				else {
@@ -240,7 +264,7 @@ package be.vrt.medialab.wordcloud
 			output += "RANGE: " + countMIN + " " + countMID + " " + countMAX + "\r";
 			
 			for each( var index:int in ordered_index ) {
-				output += "\r" + (words[index] as Word).value + "\t\t" + (words[index] as Word).count + "\t" + ( (words[index] as Word).active ? "*" : "" );
+				output += "\r" + ( (words[index] as Word).active ? "* " : " " ) + (words[index] as Word).value + "\t\t" + (words[index] as Word).count;
 			}
 			_list.text = output;
 		}
@@ -297,10 +321,14 @@ package be.vrt.medialab.wordcloud
 			
 			var centerDef:b2BodyDef = new b2BodyDef();
 			centerDef.position.Set(WORLD_WIDTH/2, WORLD_HEIGHT/2);
+			centerDef.fixedRotation = true;
 			center = world.CreateBody(centerDef);
 			
 			var centerShapeDef:b2PolygonDef = new b2PolygonDef();
 			centerShapeDef.SetAsBox(0.1, 0.1);
+			centerShapeDef.density = 1.0;
+			centerShapeDef.friction = 1.0;
+			centerShapeDef.restitution = 0.1;
 			center.CreateShape(centerShapeDef);
 			
 			_center = center;

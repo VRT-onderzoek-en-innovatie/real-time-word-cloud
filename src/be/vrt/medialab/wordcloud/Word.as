@@ -34,10 +34,11 @@ package be.vrt.medialab.wordcloud
 		public var body:b2Body;
 		public var world:b2World;
 		public var joint:b2DistanceJoint;
+		public var labelDestroyTimer:uint;
 		
 		public static const MAX_SIZE:Number = 70;
-		public static const MID_SIZE:Number = 15;
-		public static const MIN_SIZE:Number = 12;
+		public static const MID_SIZE:Number = 16;
+		public static const MIN_SIZE:Number = 11;
 
 		public static const BASE_FONTSIZE = 12;
 		
@@ -99,8 +100,9 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function createInnerForce():void {
-			var diff:b2Vec2 = new b2Vec2(  	WordCloud._center.GetWorldCenter().x - body.GetWorldCenter().x,
-									 		WordCloud._center.GetWorldCenter().y - body.GetWorldCenter().y );
+			var mass:Number = body.m_mass;
+			var diff:b2Vec2 = new b2Vec2(  mass * ( WordCloud._center.GetWorldCenter().x - body.GetWorldCenter().x ),
+										   mass * ( WordCloud._center.GetWorldCenter().y - body.GetWorldCenter().y )  );
 			body.ApplyForce( diff, body.GetWorldCenter() );
 		}
 		
@@ -135,6 +137,9 @@ package be.vrt.medialab.wordcloud
 			wrapper.scaleX = wrapper.scaleY = size;
 			wrapper.addChild(label);	
 			addChild(wrapper);
+			
+			wrapper.alpha = 0.0;
+			TweenLite.to(wrapper, 2.0, {alpha: 1.0, ease:Strong.easeOut, overwrite:false });
 		}
 		
 		public function createShape():b2PolygonDef {
@@ -142,8 +147,8 @@ package be.vrt.medialab.wordcloud
 			
 			var zoom = WordCloud.SCALE;
 			
-			var w:Number = wrapper.width * 0.9 / 2 /zoom;
-			var h:Number = wrapper.height * 0.65 / 2 / zoom;
+			var w:Number = wrapper.width * 0.95 / 2 /zoom;
+			var h:Number = wrapper.height * 0.68 / 2 / zoom;
 			
 			shapeDef.SetAsBox(w, h);
 			shapeDef.density = 1.0;
@@ -174,7 +179,7 @@ package be.vrt.medialab.wordcloud
 			body.SetMassFromShapes();
 			
 			wrapper.scaleX = wrapper.scaleY = oldSize;
-			TweenLite.to(wrapper, 2.0, {scaleX:size, scaleY:size, ease:Strong.easeOut});
+			TweenLite.to(wrapper, 2.0, {scaleX:size, scaleY:size, ease:Strong.easeOut, overwrite:false});
 			
 			//trace(" size: " + oldSize + " --> " + size );
 			
@@ -204,20 +209,30 @@ package be.vrt.medialab.wordcloud
 
 			if ( active ) {
 				try {
-				WordCloud._renderSprite.removeChild(this);
-				wrapper.removeChild(label);
-				removeChild(wrapper);
-				wrapper = null;
-				label = null;
-				body.DestroyShape( body.GetShapeList() );
-				world.DestroyBody(body);
-				body = null;
+					body.DestroyShape( body.GetShapeList() );
+					world.DestroyBody(body);
+					body = null;
 				} catch (e:Error) {
 					trace( e.message );
 				}
-
+				
+				TweenLite.to(wrapper, 0.5, {alpha:0, ease:Strong.easeIn, overwrite:true, onComplete: labelDestroyed });
+				
 				active = false;
 			}
+		}
+		
+		protected function labelDestroyed():void {
+			try {
+			label = null;
+			wrapper.removeChild(label);
+			removeChild(wrapper);
+			wrapper = null;
+			WordCloud._renderSprite.removeChild(this);
+			} catch (e:Error) {
+				trace( e.message );
+			}
+
 		}
 	}
 }

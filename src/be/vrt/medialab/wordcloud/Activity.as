@@ -9,11 +9,12 @@ package be.vrt.medialab.wordcloud
 		public var created_at;
 		public var message;
 		
-		public function Activity(input)
+		public function Activity()
 		{
-			//trace( "new Activity" );
-			//trace( "input" );
-			
+		}
+		
+		public function parseJSON(input:String):void
+		{	
 			var o:Object = JSON.decode(input);
 			
 			this.action = o.activity.action;
