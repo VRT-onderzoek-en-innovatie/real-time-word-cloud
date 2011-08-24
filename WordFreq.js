@@ -25,8 +25,9 @@ var dispatch_callback = function (/* cb array, arguments, … */) {
 	}
 };
 
-WordFreq.prototype.addWords = function (words) {
+WordFreq.prototype.addWords = function (words, weight) {
 	if( typeof(words) == 'string' ) words = [ words ];
+	if( weight == undefined ) weight = 1;
 	for(var i in words) {
 		var word = words[i];
 		if( $.inArray(word.toLowerCase(), this.stopwords) > -1 ) continue;
@@ -38,8 +39,8 @@ WordFreq.prototype.addWords = function (words) {
 		}
 		if( old.caps[word] == undefined ) old.caps[word] = 0;
 
-		old.count++;
-		old.caps[word]++;
+		old.count += weight;
+		old.caps[word] += weight;
 
 		this.dictionary[word.toLowerCase()] = old;
 		dispatch_callback( this.cb.updatedWord, word.toLowerCase(), old.count );

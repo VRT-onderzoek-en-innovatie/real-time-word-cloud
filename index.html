@@ -73,7 +73,7 @@
 
    wordfreq.setEwma(300/ffwd, 'seconds');
 
-   function add_words(text) {
+   function add_words(text, weight) {
 		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
 
 		{ // only count unique words, duplicate words in the same comment are ignored
@@ -83,7 +83,7 @@
 			for(var i in h) { words.push(i); }
 		}
 
-		wordfreq.addWords(words);
+		wordfreq.addWords(words, weight);
    }
 
 	function stoptime() {
@@ -100,7 +100,7 @@
 		var a = $.parseJSON( data.activities );
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				add_words(a[i].message);
+				add_words(a[i].message, 1 + (Math.random()*2-.5)*.10 );
 			}
 		}
    });
@@ -122,7 +122,7 @@
    });
 
 
-   function add_words(text) {
+   function add_words(text, weight) {
 		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
 
 		{ // only count unique words, duplicate words in the same comment are ignored
@@ -132,7 +132,7 @@
 			for(var i in h) { words.push(i); }
 		}
 
-		wordfreq.addWords(words);
+		wordfreq.addWords(words, weight);
    }
   </script>-->
  </body>
