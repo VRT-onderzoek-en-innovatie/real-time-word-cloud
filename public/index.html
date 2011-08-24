@@ -53,47 +53,6 @@
    u = setInterval( function() { wordcloud.redraw(); }, 100 );
   </script>
   <script type="text/javascript">
-   var ffwd = 10;
-   var now = 0;
-   var events;
-   function time_passes() {
-		now++;
-		// Assume events are sorted
-		while( events[0].offset < now ) {
-			e = events.shift();
-			add_words(e.text);
-		}
-		$("#now").text(now);
-		$("#next").text(events[0].offset);
-   }
-   $.getJSON('fake_input.json', function(data) {
-		events = data;
-		wct = setInterval("time_passes();", 1000/ffwd);
-   });
-
-   wordfreq.setEwma(300/ffwd, 'seconds');
-
-   function add_words(text, weight) {
-		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
-
-		{ // only count unique words, duplicate words in the same comment are ignored
-			h = {};
-			for(var i=words.length-1; i>=0; i--) { h[words[i]] = 1; }
-			words = [];
-			for(var i in h) { words.push(i); }
-		}
-
-		wordfreq.addWords(words, weight);
-   }
-
-	function stoptime() {
-		clearInterval(u);
-		clearInterval(wct);
-		clearInterval(wordfreq.ewma_timer);
-	}
-  </script>
-  <!-- Live script
-  <script type="text/javascript">
    supported_actions = ['twitter','facebook','comment'];
 
    $.getJSON('http://beheer.villavanthilt.be/activities.json?offset=0&limit=20&callback=?', function(data) {
@@ -134,6 +93,6 @@
 
 		wordfreq.addWords(words, weight);
    }
-  </script>-->
+  </script>
  </body>
 </html>
