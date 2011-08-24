@@ -20,6 +20,7 @@ package be.vrt.medialab.wordcloud
 	import flash.events.TimerEvent;
 	import flash.external.ExternalInterface;
 	import flash.net.URLLoader;
+	import flash.net.URLLoaderDataFormat;
 	import flash.net.URLRequest;
 	import flash.system.Security;
 	import flash.text.TextField;
@@ -55,11 +56,14 @@ package be.vrt.medialab.wordcloud
 		public static var countMAX:Number = 1;
 		public static var stopWords:Array;
 		
-		//public static var socket_host = "http://46.137.24.146:80/socket.io/websocket";
-		public static var socket_host = "http://localhost:9981/socket.io/websocket";
-		//public static var socket_host = "http://10.10.129.144:9981/socket.io/websocket";
+		//public static var socket_host:String = "http://46.137.24.146:80/socket.io/websocket";
+		public static var socket_host:String = "http://localhost:9981/socket.io/websocket";
+		//public static var socket_host:String = "http://10.10.129.144:9981/socket.io/websocket";
 		
-		public static var backlog_host = "http://localhost:3000/activities.json";
+		//public static var backlog_host:String = "http://localhost:3000/activities.json";
+		public static var backlog_host:String = "http://villa.een.be/activities.json";
+		
+		public static var stopwords_host:String = "http://localhost:3000/wordcloud/stopwords.txt";
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
@@ -68,6 +72,7 @@ package be.vrt.medialab.wordcloud
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
 		public static const MAX_WORDS_DISPLAYED:Number = 50;
+		public static const SLEEP_DELAY:Number = 7500;
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
 		public static const STOPWORDS_INPUT:String = "#villav #villavanthilt aan al alles als altijd andere ben bij daar dan dat de der deze die dit doch doen door dus een eens en er ge geen geweest haar had heb hebben heeft hem het hier hij hoe hun iemand iets ik in is ja je kan kon kunnen maar me meer men met mij mijn moet na naar niet niets nog nu of om omdat onder ons ook op over reeds te tegen toch toen tot u uit uw van veel voor want waren was wat we werd wezen wie wij wil worden wordt z'n zal ze zelf zich zij zijn zo zo'n zonder zou zo'n z'n";
 		public static const MESSAGE_TYPES:Array = ["comment","twitter","facebook", "sms"];
@@ -103,21 +108,22 @@ package be.vrt.medialab.wordcloud
 			words = new Array();
 			words_index = new Array();
 			
-			stopWords = STOPWORDS_INPUT.split(" ");
-			
-			//initFakeWords();
-			backlog = new Backlog( backlog_host );
-			backlog.addEventListener( MessageEvent.MESSAGE, onMessage );
-			backlog.read();
-			
-			socket = new VillasquareSocket(socket_host);
-			socket.addEventListener(MessageEvent.MESSAGE, onMessage);
-			
 			if ( ExternalInterface.available ) {
 				ExternalInterface.addCallback("fl_newMessage", newMessage);
 			}
 			
-			//this.addEventListener(Event.ADDED_TO_STAGE, stageReady);
+			loadStopwords(function(e:Event):void {
+				var input:String = (e.target as URLLoader).data.toString();
+				stopWords = input.split("\n");
+				
+				//initFakeWords();
+				backlog = new Backlog( backlog_host );
+				backlog.addEventListener( MessageEvent.MESSAGE, onMessage );
+				backlog.read();
+				
+				socket = new VillasquareSocket(socket_host);
+				socket.addEventListener(MessageEvent.MESSAGE, onMessage);
+			});
 		}
 		
 		protected function stageReady(e:Event):void {
@@ -143,8 +149,14 @@ package be.vrt.medialab.wordcloud
 				{
 					valueStr = String(paramObj[keyStr]);
 					switch ( keyStr ) {
-						case "host" :
+						case "socket_host" :
 							socket_host = valueStr;
+							break;
+						case "backlog_host" :
+							backlog_host = valueStr;
+							break;
+						case "stopwords_host" :
+							stopwords_host = valueStr;
 							break;
 					}
 				}
@@ -154,6 +166,12 @@ package be.vrt.medialab.wordcloud
 			}
 		}
 		
+		public function loadStopwords(callback:Function):void {
+			var loader:URLLoader = new URLLoader();
+			loader.dataFormat = URLLoaderDataFormat.TEXT;
+			loader.addEventListener( Event.COMPLETE, callback );
+			loader.load( new URLRequest( stopwords_host ) );
+		}
 		
 		public function initFakeWords():void {
 			var lorem:String = "Lorem ipsum dolor";//sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum";
@@ -177,7 +195,7 @@ package be.vrt.medialab.wordcloud
 		protected function onMessage(e:MessageEvent):void {
 			try {
 				var message:String = e.activity.message;
-				trace( "onMessage: " + message );
+				if (DEBUG) trace( "onMessage: " + message );
 				
 				newMessage(message);
 			} catch (error:Error) {
@@ -212,9 +230,6 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function newWord(word:String):void {
-			trace(" + " + word );
-			
-			
 			if ( wordInStopWords(word) ) {
 				if ( DEBUG ) trace("dropped: " + word );
 				return;
@@ -461,7 +476,7 @@ package be.vrt.medialab.wordcloud
 			}
 			
 			clearTimeout( sleepTimer );
-			sleepTimer = setTimeout( sleep, 5000 );
+			sleepTimer = setTimeout( sleep, SLEEP_DELAY );
 		}
 	}
 }
