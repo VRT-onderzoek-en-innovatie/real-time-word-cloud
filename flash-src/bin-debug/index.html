@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="reset.css" rel="stylesheet" type="text/css">
+  
+  <style>
+    body { background-color: black }
+  </style>
+  
+  <script src="swfobject.js"></script>
+  <script>
+    //var flashvars = { host: "http://46.137.24.146:80/socket.io/websocket" }
+    var flashvars = { host: "http://localhost:9981/socket.io/websocket" }
+    var params = { allowScriptAccess: 'always' };
+    var attributes = {};
+    swfobject.embedSWF("wordcloud.swf?host="+flashvars.host, "wordcloud", "680", "400", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+  </script>
+</head>
+<body>
+  <div id="wordcloud">
+    <!-- place alternative html content here -->
+  </div>
+</body>
+</html>
