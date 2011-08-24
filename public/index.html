@@ -1,9 +1,59 @@
 <!DOCTYPE html>
 <html>
- <head>
-  <link rel="stylesheet" href="fonts/FontStylesheet.css" type="text/css" charset="utf-8" />
-  <title>Word Cloud Test</title>
-  <style type="text/css">
+<head>
+  <style>
+    /* --- start of reset.css
+       http://meyerweb.com/eric/tools/css/reset/ 
+       v2.0 | 20110126
+       License: none (public domain)
+    */
+    html, body, div, span, applet, object, iframe,
+    h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+    a, abbr, acronym, address, big, cite, code,
+    del, dfn, em, img, ins, kbd, q, s, samp,
+    small, strike, strong, sub, sup, tt, var,
+    b, u, i, center,
+    dl, dt, dd, ol, ul, li,
+    fieldset, form, label, legend,
+    table, caption, tbody, tfoot, thead, tr, th, td,
+    article, aside, canvas, details, embed, 
+    figure, figcaption, footer, header, hgroup, 
+    menu, nav, output, ruby, section, summary,
+    time, mark, audio, video {
+    	margin: 0;
+    	padding: 0;
+    	border: 0;
+    	font-size: 100%;
+    	font: inherit;
+    	vertical-align: baseline;
+    }
+    /* HTML5 display-role reset for older browsers */
+    article, aside, details, figcaption, figure, 
+    footer, header, hgroup, menu, nav, section {
+    	display: block;
+    }
+    body {
+    	line-height: 1;
+    }
+    ol, ul {
+    	list-style: none;
+    }
+    blockquote, q {
+    	quotes: none;
+    }
+    blockquote:before, blockquote:after,
+    q:before, q:after {
+    	content: '';
+    	content: none;
+    }
+    table {
+    	border-collapse: collapse;
+    	border-spacing: 0;
+    }
+    /** --- end of reset.css --- */
+
+    body { background-color: black; overflow: hidden }
+
 	div#wordcloud {
 		position: relative;
 		border: solid;
@@ -18,70 +68,78 @@
 		display: inline-block;
 		padding: 0.1em;
 	}
-  </style>
- </head>
- <body>
-  <div id="wordcloud"></div>
-  <canvas id="debug" style="position: absolute; z-index: -1;"></canvas>
-  <p>Current time: <span id="now"></span>, next event: <span id="next"></span></p>
-  <script src="jquery.js"></script>
-  <script type="text/javascript">
-	$("#debug").css('top', $("#wordcloud").position().top);
-	$("#debug").css('left', $("#wordcloud").position().left);
-	$("#debug").attr('width', $("#wordcloud").width());
-	$("#debug").attr('height', $("#wordcloud").height());
-  </script>
 
+  </style>
+
+  <script src="http://code.jquery.com/jquery-1.5.2.min.js" type="text/javascript"></script>
   <script src="WordFreq.js"></script>
   <script src="WordCloud.js"></script>
   <script src="http://46.137.24.146/socket.io/socket.io.js"></script>
-  <script src="jquery.json.js"></script>
-  <script type="text/javascript">
-   var wordfreq = new WordFreq();
-   wordfreq.setEwma(120, 'seconds');
-   $.ajax({
-		url: "stopwords.txt",
-		success: function(text) {
-			wordfreq.addStopWords( text.split(/\s+/) );
-		},
-		error: function(jqXHR, textStatus, errorThrown) {
-			alert("Error getting stopwords.txt: "+textStatus);
-		}
-	});
-   //var color = "color" + Math.floor ( Math.random ( ) * 5 + 1 );
-   var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem'/>") );
-   u = setInterval( function() { wordcloud.redraw(); }, 100 );
-  </script>
-  <script type="text/javascript">
-   supported_actions = ['twitter','facebook','comment'];
+  <script src="swfobject.js"></script>
+  <script>
+    $(document).ready( function(){
+      if ( !swfobject.hasFlashPlayerVersion("9.0.0") ) {
+        init_html5();
+      }
+      else {
+        init_swfobject();
+      }
+    } );
 
-   $.getJSON('http://beheer.villavanthilt.be/activities.json?offset=0&limit=20&callback=?', function(data) {
-		var a = data.activities;
-		for(var i in a) {
-			if( $.inArray( a[i].action, supported_actions) > -1 ) {
-				add_words(a[i].message, 1 + (Math.random()*2-.5)*.10 );
+    function init_swfobject() {
+      var flashvars = { socket_host: "http://46.137.24.146:80/socket.io/websocket", backlog_host: "http://villa.een.be/activities.json"}
+      //var flashvars = { socket_host: "http://localhost:9981/socket.io/websocket", backlog_host: "http://localhost:3000/activities.json", stopwords_host: "http://localhost:3000/wordcloud/stopwords.txt" }
+      var params = { allowScriptAccess: 'always', wmode: 'transparent' };
+      var attributes = {};
+      swfobject.embedSWF("wordcloud.swf?socket_host="+flashvars.socket_host+"&backlog_host="+flashvars.backlog_host, "wordcloud", "670", "400", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+    }
+
+	var wordfreq;
+	supported_actions = ['twitter','facebook','comment'];
+
+	function init_html5() {
+		wordfreq = new WordFreq();
+		wordfreq.setEwma(120, 'seconds');
+		$.ajax({
+			url: "stopwords.txt",
+			success: function(text) {
+				wordfreq.addStopWords( text.split(/\s+/) );
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				alert("Error getting stopwords.txt: "+textStatus);
 			}
-		}
-   });
+		});
+		//var color = "color" + Math.floor ( Math.random ( ) * 5 + 1 );
+		var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem'/>") );
+		u = setInterval( function() { wordcloud.redraw(); }, 100 );
 
-   var socket = new io.Socket('46.137.24.146');
-   socket.connect();
-   socket.on('connect', function(){
-		socket.send( $.toJSON({ action: 'join', program: 'all' }) );
-   });
-   socket.on('disconnect', function(){
-		alert('disconected');
-		setTimeout("socket.connect();", 1000);
-   });
-   socket.on('message', function(e){ 
-		a = $.parseJSON( e.data );
-		if( $.inArray( a.activity.action, supported_actions) > -1 ) {
-			add_words( a.activity.message );
-		}
-   });
+		$.getJSON('http://beheer.villavanthilt.be/activities.json?offset=0&limit=20&callback=?', function(data) {
+			var a = data.activities;
+			for(var i in a) {
+				if( $.inArray( a[i].action, supported_actions) > -1 ) {
+					add_words(a[i].message, 1 + (Math.random()*2-.5)*.10 );
+				}
+			}
+		});
 
+		var socket = new io.Socket('46.137.24.146');
+		socket.connect();
+		socket.on('connect', function(){
+			socket.send( $.toJSON({ action: 'join', program: 'all' }) );
+		});
+		socket.on('disconnect', function(){
+			alert('disconected');
+			setTimeout("socket.connect();", 1000);
+		});
+		socket.on('message', function(e){ 
+			a = $.parseJSON( e.data );
+			if( $.inArray( a.activity.action, supported_actions) > -1 ) {
+				add_words( a.activity.message );
+			}
+		});
+	}
 
-   function add_words(text, weight) {
+	function add_words(text, weight) {
 		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
 
 		{ // only count unique words, duplicate words in the same comment are ignored
@@ -92,7 +150,12 @@
 		}
 
 		wordfreq.addWords(words, weight);
-   }
+	}
   </script>
- </body>
+</head>
+<body>
+  <div id="wordcloud">
+    <!-- place alternative html content here -->
+  </div>
+</body>
 </html>
