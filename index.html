@@ -97,7 +97,7 @@
    supported_actions = ['twitter','facebook','comment'];
 
    $.getJSON('http://beheer.villavanthilt.be/activities.json?offset=0&limit=20&callback=?', function(data) {
-		var a = $.parseJSON( data.activities );
+		var a = data.activities;
 		for(var i in a) {
 			if( $.inArray( a[i].action, supported_actions) > -1 ) {
 				add_words(a[i].message, 1 + (Math.random()*2-.5)*.10 );
