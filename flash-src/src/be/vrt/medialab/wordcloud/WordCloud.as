@@ -63,7 +63,7 @@ package be.vrt.medialab.wordcloud
 		//public static var backlog_host:String = "http://localhost:3000/activities.json";
 		public static var backlog_host:String = "http://villa.een.be/activities.json";
 		
-		public static var stopwords_host:String = "http://localhost:3000/wordcloud/stopwords.txt";
+		public static var stopwords_host:String = "http://wordcloud.local/stopwords.txt";
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
