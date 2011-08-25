@@ -64,7 +64,7 @@ WordCloudAnchor.prototype.flushCache = function() {
 WordCloudItem = function(jqelement, anchor) {
 	this.jqe = jqelement;
 	this.anchor = anchor;
-	this.hideThreshold = 0.1;
+	this.hideThreshold = 1;
 	// set the color
 	switch (Math.floor ( Math.random ( ) * 5 + 1 )) {
 		case 1: this.color = "#8dc3f2"; break;
@@ -212,7 +212,7 @@ WordCloud = function(wordfreq, anchor, template) {
 	this.anchor = new WordCloudAnchor(anchor);
 	this.template = template;
 
-	this.hideThreshold = 0.1;
+	this.hideThreshold = 1;
 
 	// Keep fill-grade between 20% and 50%
 	this.fill_feedback = new FeedBackLoop(.2, .2, .5, .5, 0);
