@@ -45,6 +45,7 @@ package be.vrt.medialab.wordcloud
 		public var ordered_index;
 		
 		public var sleepTimer:uint;
+		public var previousDecreaseTimestamp:Date;
 		
 		public var timeStep:Number = 1.0 / 60.0;
 		public var iterations:Number = 10;
@@ -59,11 +60,10 @@ package be.vrt.medialab.wordcloud
 		//public static var socket_host:String = "http://46.137.24.146:80/socket.io/websocket";
 		public static var socket_host:String = "http://localhost:9981/socket.io/websocket";
 		//public static var socket_host:String = "http://10.10.129.144:9981/socket.io/websocket";
-		
 		//public static var backlog_host:String = "http://localhost:3000/activities.json";
-		public static var backlog_host:String = "http://villa.een.be/activities.json";
-		
-		public static var stopwords_host:String = "http://wordcloud.local/stopwords.txt";
+		public static var backlog_host:String = "http://localhost:3000/activities.json";
+		public static var stopwords_host:String = "stopwords.txt";
+		public static var decreaseInTime:Boolean = true;
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
@@ -73,6 +73,8 @@ package be.vrt.medialab.wordcloud
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
 		public static const MAX_WORDS_DISPLAYED:Number = 50;
 		public static const SLEEP_DELAY:Number = 7500;
+		public static const DELTA:Number = 0.5;
+		public static const HALFTIME:Number = 120; //seconds
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
 		public static const STOPWORDS_INPUT:String = "#villav #villavanthilt aan al alles als altijd andere ben bij daar dan dat de der deze die dit doch doen door dus een eens en er ge geen geweest haar had heb hebben heeft hem het hier hij hoe hun iemand iets ik in is ja je kan kon kunnen maar me meer men met mij mijn moet na naar niet niets nog nu of om omdat onder ons ook op over reeds te tegen toch toen tot u uit uw van veel voor want waren was wat we werd wezen wie wij wil worden wordt z'n zal ze zelf zich zij zijn zo zo'n zonder zou zo'n z'n";
 		public static const MESSAGE_TYPES:Array = ["comment","twitter","facebook", "sms"];
@@ -107,6 +109,7 @@ package be.vrt.medialab.wordcloud
 			
 			words = new Array();
 			words_index = new Array();
+			ordered_index = new Array();
 			
 			if ( ExternalInterface.available ) {
 				ExternalInterface.addCallback("fl_newMessage", newMessage);
@@ -124,6 +127,8 @@ package be.vrt.medialab.wordcloud
 				socket = new VillasquareSocket(socket_host);
 				socket.addEventListener(MessageEvent.MESSAGE, onMessage);
 			});
+			
+			previousDecreaseTimestamp = new Date();
 		}
 		
 		protected function stageReady(e:Event):void {
@@ -157,6 +162,9 @@ package be.vrt.medialab.wordcloud
 							break;
 						case "stopwords_host" :
 							stopwords_host = valueStr;
+							break;
+						case "decreaseInTime" :
+							decreaseInTime = ( (valueStr == "1" || valueStr == "true" ) ? true : false );
 							break;
 					}
 				}
@@ -206,6 +214,8 @@ package be.vrt.medialab.wordcloud
 		
 		
 		public function newMessage(message:String):void {	
+			if ( decreaseInTime ) { decrease(); };
+			
 			var pattern:RegExp = new RegExp("http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+", "g");
 	
 			var a:Array = message.match(pattern);
@@ -222,6 +232,7 @@ package be.vrt.medialab.wordcloud
 			
 			sortWords();
 			cleanUp();
+			
 			if ( DEBUG) updateList();
 			
 			addEventListener(Event.ENTER_FRAME, update, false, 0, true);
@@ -267,6 +278,25 @@ package be.vrt.medialab.wordcloud
 					}
 				}
 			}
+		}
+		
+		public function decrease():void {
+			
+			var ffwd:Number = 1;
+			
+			// elapsed time
+			var now:Date = new Date();
+			var diff:Number = (now.time - previousDecreaseTimestamp.time) / 1000 * ffwd; // in seconds
+			var factor = Math.pow( DELTA, diff/HALFTIME );
+			
+			var word:Word;
+			var index_length = ordered_index.length;
+			for ( var i:int = 0; i<index_length; i++ ) {
+				word = words[ordered_index[i]];
+				if ( word.count > 1 ) word.decrease(factor);
+			}
+			
+			previousDecreaseTimestamp = now;
 		}
 		
 		public function sortWords():void {

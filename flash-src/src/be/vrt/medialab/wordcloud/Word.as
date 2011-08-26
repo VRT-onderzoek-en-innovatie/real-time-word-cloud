@@ -199,6 +199,11 @@ package be.vrt.medialab.wordcloud
 			}
 		}
 		
+		public function decrease(factor:Number):void {
+			count = Math.max(1,count*factor);
+			updateShape();
+		}
+		
 		public function randomPosition():void {
 			body.SetXForm( new b2Vec2(1 + Math.random() * (WordCloud.WORLD_WIDTH-2) , 1 + Math.random() * (WordCloud.WORLD_HEIGHT-2) ), 0 );
 			body.WakeUp();
