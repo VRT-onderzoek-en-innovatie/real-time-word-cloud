@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body { font-family: verdana; font-size: 11px;  }
+      #wordcloud { background-color: black; }
+      #time { margin: 10px 0px; }
+    </style>
+    
+    <script src="jquery.js"></script>
+    <script src="jquery.json.js"></script>
+    <script src="swfobject.js"></script>
+
+    <script>
+      var events;
+      var now = 0;
+      var wct;
+      var ffwd = 5;
+      var random = false;
+      
+      $(document).ready(function() {
+        
+        var flashvars = { socket_host: "http://localhost:9981/socket.io/websocket", backlog_host: "http://localhost:3000/activities.json", stopwords_host: "stopwords.txt", decreaseInTime: "true" }
+        var params = { allowScriptAccess: 'always', wmode: 'transparent' };
+        var attributes = {};
+        swfobject.embedSWF("wordcloud.swf?socket_host="+flashvars.socket_host+"&backlog_host="+flashvars.backlog_host+"&stopwords_host="+flashvars.stopwords_host+"&decreaseInTime="+flashvars.decreaseInTime, "wordcloud", "1200", "400", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+        
+        $.getJSON('fake_input.json', function(data) {
+          events = data;
+          wct = setInterval("time_passes();", 1000/ffwd);
+         });
+      } );
+       
+      function time_passes() {
+        now++;
+        
+        
+        if ( random ) {
+          if ( now % ffwd != 0 ) 
+            return;
+            
+          var index = Math.round( Math.random() * events.length );
+          add_words(events[index].text);
+          return;
+        }
+        
+       
+        
+        // Assume events are sorted
+        while( events[0].offset < now ) {
+          e = events.shift();
+          add_words(e.text);
+        } 
+        $("#now").text(now);
+        $("#next").text(events[0].offset);
+
+        if ( now == 2500 ) {
+//          clearInterval(wct);
+//          wct = setInterval("time_passes();", 1000);
+        }
+      }
+      
+      function add_words(text) {
+        $("#logs").prepend("<div>"+text+"</div>");
+        
+        if ( typeof wordcloud.fl_newMessage != "undefined" ) {
+          //console.log("message");
+          wordcloud.fl_newMessage(text);
+        }
+      }
+      
+    </script>
+  </head>
+  <body>
+    <div id="wordcloud"></div>
+    <div id="time">
+      <span id="now"></span> --- Next event: <span id="next"></span>
+    </div>
+    <div id="logs"></div>
+  </body>
+</html>
