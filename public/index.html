@@ -128,7 +128,7 @@
 			socket.send( $.toJSON({ action: 'join', program: 'all' }) );
 		});
 		socket.on('disconnect', function(){
-			alert('disconected');
+			//alert('disconected');
 			setTimeout("socket.connect();", 1000);
 		});
 		socket.on('message', function(e){ 
