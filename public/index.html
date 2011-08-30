@@ -100,7 +100,7 @@
 
 	function update_stopwords() {
 		$.ajax({
-			url: "stopwords.txt?somethingDifferentToBypassBrowserCache="+Math.random(),
+			url: "stopwords.txt",
 			success: function(text) {
 				wordfreq.addStopWords( text.split(/\s+/) );
 			},
