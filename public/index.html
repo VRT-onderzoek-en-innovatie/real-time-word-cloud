@@ -96,6 +96,7 @@
 
 	var wordfreq;
 	supported_actions = ['twitter','facebook','comment'];
+	supported_unactions = ['uncomment'];
 
 	function init_html5() {
 		wordfreq = new WordFreq();
@@ -117,7 +118,8 @@
 			var a = data.activities;
 			for(var i in a) {
 				if( $.inArray( a[i].action, supported_actions) > -1 ) {
-					add_words(a[i].message, 1 + (Math.random()*2-.5)*.20 );
+					var w = split_words( a[i].message );
+					wordfreq.addWords(w, 1 + (Math.random()*2-1)*.20 );
 				}
 			}
 		});
@@ -134,12 +136,16 @@
 		socket.on('message', function(e){ 
 			a = $.parseJSON( e.data );
 			if( $.inArray( a.activity.action, supported_actions) > -1 ) {
-				add_words( a.activity.message );
+				var w = split_words( a.activity.message );
+				wordfreq.addWords(w);
+			} else if( $.inArray( a.activity.action, supported_unactions) > -1 ) {
+				var w = split_words( a.activity.message );
+				wordfreq.removeWords(w);
 			}
 		});
 	}
 
-	function add_words(text, weight) {
+	function split_words(text) {
 		words = text.match(/http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+/g);
 
 		{ // only count unique words, duplicate words in the same comment are ignored
@@ -149,7 +155,7 @@
 			for(var i in h) { words.push(i); }
 		}
 
-		wordfreq.addWords(words, weight);
+		return words;
 	}
   </script>
 </head>
