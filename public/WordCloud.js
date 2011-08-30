@@ -223,7 +223,7 @@ WordCloud = function(wordfreq, anchor, template) {
 	var that = this;
 	this.wordfreq.cb.newWord.push( function(newWord) { that.newWord(newWord); } );
 	this.wordfreq.cb.updatedWord.push( function(word, count) { that.updateWord(word,count); } );
-	this.wordfreq.cb.removedWord.push( function(word) { that.removeWord(word); } );
+	this.wordfreq.cb.removedWord.push( function(word) { that.removedWord(word); } );
 	this.wordfreq.cb.tick.push( function(reduce) {
 			that.hideThreshold = Math.max(0.1,reduce(that.hideThreshold));
 		} );
@@ -243,7 +243,7 @@ WordCloud.prototype.updateWord = function (word, count) {
 };
 WordCloud.prototype.removedWord = function (word) {
 	if( this.words[ word ] != undefined ) {
-		this.fill_feedback.weight -= wordObj.weight();;
+		this.fill_feedback.weight -= this.words[word].weight();;
 		this.words[ word ].destroy(); // manually call destructor FIXME (if possible in JS)
 		delete this.words[ word ];
 	}

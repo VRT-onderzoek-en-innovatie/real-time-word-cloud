@@ -98,18 +98,25 @@
 	supported_actions = ['twitter','facebook','comment','sms'];
 	supported_unactions = ['uncomment','untwitter','unfacebook','unsms'];
 
-	function init_html5() {
-		wordfreq = new WordFreq();
-		wordfreq.setEwma(120, 'seconds');
+	function update_stopwords() {
 		$.ajax({
-			url: "stopwords.txt",
+			url: "stopwords.txt?somethingDifferentToBypassBrowserCache="+Math.random(),
 			success: function(text) {
 				wordfreq.addStopWords( text.split(/\s+/) );
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
-				alert("Error getting stopwords.txt: "+textStatus);
+				console.log("Error getting stopwords.txt: "+textStatus);
 			}
 		});
+	}
+
+	function init_html5() {
+		wordfreq = new WordFreq();
+		wordfreq.setEwma(120, 'seconds');
+
+		update_stopwords();
+		setInterval( function() { update_stopwords(); }, 1*60*1000 );
+
 		//var color = "color" + Math.floor ( Math.random ( ) * 5 + 1 );
 		var wordcloud = new WordCloud(wordfreq, $("#wordcloud"), $("<div class='wordclouditem'/>") );
 		u = setInterval( function() { wordcloud.redraw(); }, 100 );

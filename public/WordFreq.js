@@ -62,7 +62,7 @@ WordFreq.prototype.removeWords = function (words, weight) {
 		old.caps[word] -= weight;
 
 		this.dictionary[word.toLowerCase()] = old;
-		dispatch_callback( this.cb.updatedWord, word.toLowerCase(), old.count );
+		dispatch_callback( this.cb.removedWord, word.toLowerCase(), old.count );
 	}
 };
 
@@ -113,15 +113,16 @@ WordFreq.prototype.addStopWords = function (words) {
 	$.each(words, function (index, value) {
 		if( that.dictionary[value] != undefined ) {
 			delete that.dictionary[value];
-			dispatch_callback( this.cb.removedWord, index );
+			dispatch_callback( that.cb.removedWord, value );
 		}
 	});
 };
 
 WordFreq.prototype.wipe = function () {
+	var that = this;
 	if( this.cb.removedWord.length > 0 ) {
 		$.each(this.dictionary, function(index, value) {
-			dispatch_callback( this.cb.removedWord, index );
+			dispatch_callback( that.cb.removedWord, index );
 		});
 	}
 	this.dictionary = {};
