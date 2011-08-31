@@ -38,7 +38,7 @@ package be.vrt.medialab.wordcloud
 		
 		public static const MAX_SIZE:Number = 70;
 		public static const MID_SIZE:Number = 16;
-		public static const MIN_SIZE:Number = 11;
+		public static const MIN_SIZE:Number = 12;
 
 		public static const BASE_FONTSIZE = 12;
 		
@@ -211,7 +211,7 @@ package be.vrt.medialab.wordcloud
 		
 		public function destroy():void {
 			//trace( value + ".destroy()");
-
+			
 			if ( active ) {
 				try {
 					body.DestroyShape( body.GetShapeList() );
@@ -229,8 +229,8 @@ package be.vrt.medialab.wordcloud
 		
 		protected function labelDestroyed():void {
 			try {
-			label = null;
 			wrapper.removeChild(label);
+			label = null;
 			removeChild(wrapper);
 			wrapper = null;
 			WordCloud._renderSprite.removeChild(this);

@@ -46,6 +46,7 @@ package be.vrt.medialab.wordcloud
 		
 		public var sleepTimer:uint;
 		public var previousDecreaseTimestamp:Date;
+		public var stopwordsRefreshTimer:uint;
 		
 		public var timeStep:Number = 1.0 / 60.0;
 		public var iterations:Number = 10;
@@ -62,12 +63,13 @@ package be.vrt.medialab.wordcloud
 		//public static var socket_host:String = "http://10.10.129.144:9981/socket.io/websocket";
 		//public static var backlog_host:String = "http://localhost:3000/activities.json";
 		public static var backlog_host:String = "http://localhost:3000/activities.json";
-		public static var stopwords_host:String = "stopwords.txt";
+		//public static var stopwords_host:String = "http://villa.een.be/wordcloud/public/stopwords.txt";
+		public static var stopwords_host:String = "http://localhost:3000/wordcloud/stopwords.txt";
 		public static var decreaseInTime:Boolean = true;
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
-		public static const DEBUG:Boolean = false;
+		public static const DEBUG:Boolean = true;
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
@@ -103,7 +105,6 @@ package be.vrt.medialab.wordcloud
 				_list = null;
 			}
 			
-			
 			createBox2DWorld();
 			createBorders();
 			
@@ -129,6 +130,11 @@ package be.vrt.medialab.wordcloud
 			});
 			
 			previousDecreaseTimestamp = new Date();
+			
+			stopwordsRefreshTimer = setInterval( function(){
+					loadStopwords( cleanUpStopwords );
+				}, 60000 );
+			
 		}
 		
 		protected function stageReady(e:Event):void {
@@ -276,6 +282,23 @@ package be.vrt.medialab.wordcloud
 					if ( word.active ) {
 						word.destroy();
 					}
+				}
+			}
+		}
+		
+		public function cleanUpStopwords(e:Event):void {
+			var input:String = (e.target as URLLoader).data.toString();
+			stopWords = input.split("\n");
+			
+			trace( "cleanup stopwords" );
+			
+			var index_length = ordered_index.length;
+			
+			var word:Word;
+			for ( var i:int = 0; i<index_length; i++ ) {
+				word = words[ordered_index[i]];
+				if( wordInStopWords( word.value ) ) {
+					word.destroy();
 				}
 			}
 		}
