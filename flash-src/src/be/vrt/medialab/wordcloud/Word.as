@@ -159,8 +159,14 @@ package be.vrt.medialab.wordcloud
 		}
 		
 		public function incrementCount():void {
-			count++
+			count++;
 			
+			updateShape();
+		}
+		
+		public function decrementCount():void {
+			count = Math.max(0, count-1);
+				
 			updateShape();
 		}
 		

@@ -5,6 +5,7 @@ package be.vrt.medialab.wordcloud
 	public class MessageEvent extends Event
 	{
 		public static const MESSAGE:String = "message";
+		public static const REMOVE:String = "remove";
 		
 		public var activity:Activity;
 		

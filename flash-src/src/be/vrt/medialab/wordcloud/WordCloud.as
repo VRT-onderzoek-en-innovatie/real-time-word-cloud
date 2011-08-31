@@ -69,7 +69,7 @@ package be.vrt.medialab.wordcloud
 		
 		public static const WORLD_WIDTH:Number = 22.6;
 		public static const WORLD_HEIGHT:Number = 13.2;
-		public static const DEBUG:Boolean = true;
+		public static const DEBUG:Boolean = false;
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
@@ -80,6 +80,7 @@ package be.vrt.medialab.wordcloud
 		public static const COLORS:Array = [ 0x8dc3f2 , 0xcbe4f8, 0xf2f2f2, 0x8cbf1f, 0x7aa61b];
 		public static const STOPWORDS_INPUT:String = "#villav #villavanthilt aan al alles als altijd andere ben bij daar dan dat de der deze die dit doch doen door dus een eens en er ge geen geweest haar had heb hebben heeft hem het hier hij hoe hun iemand iets ik in is ja je kan kon kunnen maar me meer men met mij mijn moet na naar niet niets nog nu of om omdat onder ons ook op over reeds te tegen toch toen tot u uit uw van veel voor want waren was wat we werd wezen wie wij wil worden wordt z'n zal ze zelf zich zij zijn zo zo'n zonder zou zo'n z'n";
 		public static const MESSAGE_TYPES:Array = ["comment","twitter","facebook", "sms"];
+		public static const REMOVE_TYPES:Array = ["uncomment","untwitter","unfacebook"];
 		
 		public function WordCloud()
 		{
@@ -127,6 +128,7 @@ package be.vrt.medialab.wordcloud
 				
 				socket = new VillasquareSocket(socket_host);
 				socket.addEventListener(MessageEvent.MESSAGE, onMessage);
+				socket.addEventListener(MessageEvent.REMOVE, onRemove);
 			});
 			
 			previousDecreaseTimestamp = new Date();
@@ -218,8 +220,20 @@ package be.vrt.medialab.wordcloud
 			}
 		}
 		
+		protected function onRemove(e:MessageEvent):void {
+			try {
+				var message:String = e.activity.message;
+				if (DEBUG) trace( "onRemove: " + message );
+				
+				newMessage(message, true);
+			} catch (error:Error) {
+				trace( "error on remove " + e.activity.message );
+				trace( error );
+			}
+		}
 		
-		public function newMessage(message:String):void {	
+		
+		public function newMessage(message:String, uncomment:Boolean=false):void {	
 			if ( decreaseInTime ) { decrease(); };
 			
 			var pattern:RegExp = new RegExp("http:\/\/[a-zA-Z0-9./?=&-]+|[#@]?[a-zA-Z][a-zA-Z'-]+", "g");
@@ -232,7 +246,7 @@ package be.vrt.medialab.wordcloud
 				if ( w.indexOf("http://") != -1 )	continue;
 				if ( w.indexOf("#") == 0 )			continue;
 				
-				newWord(w);
+				newWord(w, uncomment);
 				} catch (e:Error) {};
 			}
 			
@@ -246,7 +260,7 @@ package be.vrt.medialab.wordcloud
 			sleepTimer = setTimeout( sleep, 3000 );
 		}
 		
-		public function newWord(word:String):void {
+		public function newWord(word:String, uncomment:Boolean=false):void {
 			if ( wordInStopWords(word) ) {
 				if ( DEBUG ) trace("dropped: " + word );
 				return;
@@ -255,7 +269,11 @@ package be.vrt.medialab.wordcloud
 			var index = wordExists(word);
 			
 			if ( wordExists(word) !== false ) {
-				(words[index] as Word).incrementCount();
+				if (uncomment) {
+					(words[index] as Word).decrementCount();
+				} else {
+					(words[index] as Word).incrementCount();
+				}
 			} else {
 				var w:Word = new Word(word, world);
 				words.push(w);
