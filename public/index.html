@@ -88,7 +88,7 @@
     } );
 
     function init_swfobject() {
-      var flashvars = { socket_host: "http://46.137.24.146:80/socket.io/websocket", backlog_host: "http://beheer.villavanthilt.be/activities.json", stopwords_host: "http://storage.meerdan.tv/wordcloud/stopwords.txt", decreaseInTime: "true"}
+      var flashvars = { socket_host: "http://46.137.24.146:80/socket.io/websocket", backlog_host: "http://beheer.villavanthilt.be/activities.json", stopwords_host: "stopwords.txt", decreaseInTime: "true"}
       var params = { allowScriptAccess: 'always', wmode: 'transparent' };
       var attributes = {};
       swfobject.embedSWF("wordcloud.swf?_=1234&socket_host="+flashvars.socket_host+"&backlog_host="+flashvars.backlog_host+"&stopwords_host="+flashvars.stopwords_host, "wordcloud", "670", "400", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
@@ -100,7 +100,7 @@
 
 	function update_stopwords() {
 		$.ajax({
-			url: "http://storage.meerdan.tv/wordcloud/stopwords.txt",
+			url: "stopwords.txt",
 			success: function(text) {
 				wordfreq.addStopWords( text.split(/\s+/) );
 			},
