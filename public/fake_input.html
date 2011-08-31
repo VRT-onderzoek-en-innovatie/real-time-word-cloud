@@ -15,12 +15,12 @@
       var events;
       var now = 0;
       var wct;
-      var ffwd = 5;
+      var ffwd = 1;
       var random = false;
       
       $(document).ready(function() {
         
-        var flashvars = { socket_host: "http://localhost:9981/socket.io/websocket", backlog_host: "http://localhost:3000/activities.json", stopwords_host: "stopwords.txt", decreaseInTime: "true" }
+        var flashvars = { socket_host: "http://localhost:9981/socket.io/websocket", backlog_host: "http://localhost:3000/activities.json", stopwords_host: "http://localhost:3000/wordcloud/stopwords.txt", decreaseInTime: "true" }
         var params = { allowScriptAccess: 'always', wmode: 'transparent' };
         var attributes = {};
         swfobject.embedSWF("wordcloud.swf?socket_host="+flashvars.socket_host+"&backlog_host="+flashvars.backlog_host+"&stopwords_host="+flashvars.stopwords_host+"&decreaseInTime="+flashvars.decreaseInTime, "wordcloud", "1200", "400", "9.0.0", "expressInstall.swf", flashvars, params, attributes);

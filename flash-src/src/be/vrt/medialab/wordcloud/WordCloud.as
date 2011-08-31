@@ -63,7 +63,10 @@ package be.vrt.medialab.wordcloud
 		//public static var socket_host:String = "http://10.10.129.144:9981/socket.io/websocket";
 		//public static var backlog_host:String = "http://localhost:3000/activities.json";
 		public static var backlog_host:String = "http://localhost:3000/activities.json";
-		public static var stopwords_host:String = "http://villa.een.be/wordcloud/public/stopwords.txt";
+		
+		
+		public static var stopwords_host:String = "http://storage.meerdan.tv/wordcloud/stopwords.txt";
+		//public static var stopwords_host:String = "http://villa.een.be/wordcloud/public/stopwords.txt";
 		//public static var stopwords_host:String = "http://localhost:3000/wordcloud/stopwords.txt";
 		public static var decreaseInTime:Boolean = true;
 		
