@@ -63,8 +63,8 @@ package be.vrt.medialab.wordcloud
 		//public static var socket_host:String = "http://10.10.129.144:9981/socket.io/websocket";
 		//public static var backlog_host:String = "http://localhost:3000/activities.json";
 		public static var backlog_host:String = "http://localhost:3000/activities.json";
-		//public static var stopwords_host:String = "http://villa.een.be/wordcloud/public/stopwords.txt";
-		public static var stopwords_host:String = "http://localhost:3000/wordcloud/stopwords.txt";
+		public static var stopwords_host:String = "http://villa.een.be/wordcloud/public/stopwords.txt";
+		//public static var stopwords_host:String = "http://localhost:3000/wordcloud/stopwords.txt";
 		public static var decreaseInTime:Boolean = true;
 		
 		public static const WORLD_WIDTH:Number = 22.6;
@@ -73,7 +73,7 @@ package be.vrt.medialab.wordcloud
 		public static const GRAVITY:Boolean = false;
 		public static const SCALE:Number = 30.0;
 		public static const FONTSIZE_MULTIPLIER:Number = 20;
-		public static const MAX_WORDS_DISPLAYED:Number = 50;
+		public static const MAX_WORDS_DISPLAYED:Number = 40;
 		public static const SLEEP_DELAY:Number = 7500;
 		public static const DELTA:Number = 0.5;
 		public static const HALFTIME:Number = 120; //seconds

@@ -38,7 +38,7 @@ package be.vrt.medialab.wordcloud
 		
 		public static const MAX_SIZE:Number = 70;
 		public static const MID_SIZE:Number = 16;
-		public static const MIN_SIZE:Number = 12;
+		public static const MIN_SIZE:Number = 13;
 
 		public static const BASE_FONTSIZE = 12;
 		
